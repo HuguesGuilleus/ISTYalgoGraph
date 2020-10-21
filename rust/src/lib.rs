@@ -120,14 +120,16 @@ impl Graph {
     pub fn dijkstra(&self, origin: usize) -> Vec<Option<usize>> {
         let mut dist: Vec<Option<usize>> = vec![None; self.len()];
         let mut node_todo = heap::Heap::new();
+        let mut min_theoretical: usize = 0;
         dist[origin] = Some(0);
         node_todo.push(origin);
 
         loop {
-            match node_todo.min(|s| dist[s]) {
+            match node_todo.next(min_theoretical, |s| dist[s]) {
                 None => break,
                 Some(parent) => {
-                    let minimum: usize = dist[parent].unwrap_or(0) + 1;
+                    min_theoretical = dist[parent].unwrap_or(0);
+                    let minimum: usize = min_theoretical + 1;
                     self.children(parent).for_each(|child| {
                         if dist[child].is_none() {
                             node_todo.push(child);

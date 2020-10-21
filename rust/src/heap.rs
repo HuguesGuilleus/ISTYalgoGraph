@@ -10,8 +10,8 @@ impl Heap {
     pub fn push(&mut self, v: usize) {
         self.list.push(v);
     }
-    // Return the minimal evalued by the closure f.
-    pub fn min<Min>(&mut self, f: Min) -> Option<usize>
+    /// min_minimum est la valeur minimal que l'on peut atteindre.
+    pub fn next<Min>(&mut self, min_theoretical: usize, f: Min) -> Option<usize>
     where
         Min: Fn(usize) -> Option<usize>,
     {
@@ -19,28 +19,30 @@ impl Heap {
         let mut min_value: Option<usize> = None;
         let mut min_index: Option<usize> = None;
 
-        self.list
-            .iter()
-            .enumerate()
-            .for_each(|(j, &v)| match (f(v), min_eval) {
-                (Some(e), Some(me)) if e < me => {
-                    min_eval = Some(e);
-                    min_value = Some(v);
-                    min_index = Some(j)
+        for i in (0..self.list.len()).rev() {
+            let v = self.list[i];
+            match (f(v), min_eval) {
+                (Some(current), _) if current == min_theoretical => {
+                    self.list.swap_remove(i);
+                    // self.list.pop();
+                    return Some(v);
                 }
-                (Some(e), None) => {
-                    min_eval = Some(e);
+                (Some(current), Some(min)) if current < min => {
+                    min_eval = Some(current);
                     min_value = Some(v);
-                    min_index = Some(j)
+                    min_index = Some(i);
+                }
+                (Some(current), None) => {
+                    min_eval = Some(current);
+                    min_value = Some(v);
+                    min_index = Some(i);
                 }
                 _ => {}
-            });
+            }
+        }
 
         if let Some(i) = min_index {
-            let last = self.list.pop();
-            if i < self.list.len() && last.is_some() {
-                self.list[i] = last.unwrap();
-            }
+            self.list.swap_remove(i);
         }
 
         min_value
@@ -48,21 +50,21 @@ impl Heap {
 }
 
 #[test]
-fn heap_min() {
+fn heap_next() {
     let mut h = Heap::new();
     let f = |u| Some(5 - u);
 
-    assert_eq!(h.min(f), None);
+    assert_eq!(h.next(0, f), None);
 
     h.push(1);
-    assert_eq!(h.min(f), Some(1));
+    assert_eq!(h.next(0, f), Some(1));
 
     h.push(1);
     h.push(2);
     h.push(3);
     h.push(3);
 
-    assert_eq!(h.min(f), Some(3));
+    assert_eq!(h.next(2, f), Some(3));
 
     let mut hh = Heap::new();
     hh.push(1);
