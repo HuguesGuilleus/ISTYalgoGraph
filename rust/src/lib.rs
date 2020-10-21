@@ -31,6 +31,7 @@ pub struct Graph {
 pub struct Stats {
     pub nodes: usize,
     pub edges: usize,
+    pub max_degree: usize,
     pub distance: Option<usize>,
     pub duration: Duration,
 }
@@ -149,22 +150,24 @@ impl Graph {
         ))
     }
 
+    /// Génère les statistiques du graphe comme demandé par l'énnoncé.
     pub fn stats(&self) -> Stats {
         let before = Instant::now();
         Stats {
             nodes: self.len(),
-            edges: self
-                .matrix
-                .iter()
-                .map(|children| children.into_iter())
-                .flatten()
-                .count(),
+            edges: self.edges(),
+            max_degree: self.matrix.iter().map(|n| n.len()).max().unwrap_or(0),
             distance: self.distance_by_dijkstra(),
             duration: before.elapsed(),
         }
     }
+    /// Nombre total de sommets. Complexité constante.
     pub fn len(&self) -> usize {
         self.matrix.len()
+    }
+    /// Nombre total d'arrêtes. S'exécute en temps linéaire par rapport au nombre de sommets.
+    pub fn edges(&self) -> usize {
+        self.matrix.iter().map(|children| children.len()).sum()
     }
     /// Calcul la distance en prenant tous les sommets comme origine pour l'algorithme de Disktra.
     fn distance_by_dijkstra(&self) -> Option<usize> {
