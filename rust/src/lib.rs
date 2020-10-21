@@ -109,7 +109,19 @@ impl Graph {
         self.matrix.len()
     }
     fn distance_by_dijkstra(&self) -> Option<usize> {
-        (0..self.len())
+        let mut parent: Vec<bool> = vec![true; self.len()];
+        self.matrix
+            .iter()
+            .flatten()
+            .for_each(|child| parent[*child] = false);
+
+        parent
+            .iter()
+            .enumerate()
+            .filter_map(|(i, parent)| match parent {
+                true => None,
+                false => Some(i),
+            })
             .inspect(|origin| println!("origin={:?}", origin))
             .map(|origin| self.dijkstra(origin))
             .map(|v| v.into_iter())
