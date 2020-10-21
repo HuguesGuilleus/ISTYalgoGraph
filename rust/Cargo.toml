@@ -1,0 +1,8 @@
+[package]
+name = "graph"
+version = "0.1.0"
+authors = ["Hugues Guilleus <hugues.guilleus@ens.uvsq.fr>"]
+edition = "2018"
+default-run = "graph"
+
+[dependencies]
