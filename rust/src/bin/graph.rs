@@ -1,15 +1,15 @@
 #![feature(termination_trait_lib, process_exitcode_placeholder)]
 
 fn main() -> finalreturn::R {
-    println!("Load ...");
+    let f = "../x/db/FacebookSites.csv";
+    // let f = "../x/db/GitHub.csv";
+    // let f = "../x/db/RoadNetwork.txt";
+    // let f = "../x/db/twitchDE.csv";
+    // let f = "../x/db/Wikipedia1.csv";()
+    // let f = "../x/db/Wikipedia2.csv";()
 
-    let g = graph::Graph::new_csv("../x/db/GitHub.csv", 10_000)?;
-    // let g = graph::Graph::new_tab("../x/db/RoadNetwork.txt", 1_965_206)?;
-    // let g = graph::Graph::new_tab("../x/db/2RoadNetwork.txt", 470)?;
-
-    println!("Gen stats ...");
-    let s = g.stats();
-    println!("g.stats(): {:?}", s);
+    println!("Loading ...");
+    println!("{:#?}", graph::Graph::load(f, Some(10_000))?.stats());
 
     Ok(())
 }

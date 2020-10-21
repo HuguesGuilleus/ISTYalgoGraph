@@ -3,14 +3,30 @@ mod parse;
 
 use std::time::{Duration, Instant};
 
-/// Graphe sous forme d'une matrice d'adjacence.
+/// Un graphe, il contient une liste où chaque sommet a ses enfants.
+/// ```
+/// // From: https://fr.wikipedia.org/wiki/Matrice_d%27adjacence#Exemples
+/// let mut g = graph::Graph::new(8);
+/// g.add((0, 1));
+/// g.add((0, 4));
+/// g.add((1, 6));
+/// g.add((3, 6));
+/// g.add((3, 2));
+/// g.add((5, 0));
+/// g.add((5, 1));
+/// g.add((5, 2));
+/// g.add((7, 6));
+///
+/// println!("{}", g);
+/// println!("{:?}", g.stats());
+/// ```
 #[derive(Debug)]
 pub struct Graph {
     // matrix: Vec<Vec<usize>>,
     matrix: Vec<Vec<usize>>,
 }
 
-/// Les stats d'un graphe
+/// Les statistiques d'un graphe. Généré par `graph.stats()`.
 #[derive(Debug)]
 pub struct Stats {
     pub nodes: usize,
@@ -20,12 +36,14 @@ pub struct Stats {
 }
 
 impl Graph {
+    /// Créé un nouveau graphe vide. Pour ajouter des sommets utiliser les méthodes `add` ou `push`.
     pub fn new(size: usize) -> Graph {
         Graph {
             matrix: vec![vec![0; 0]; size],
             // matrix: vec![vec![0; size]; size],
         }
     }
+    /// Ajoute un nouvel arc si `begin` et `end` sont inférieur à `self.len()`.
     pub fn add(&mut self, (begin, end): (usize, usize)) {
         let l = self.len();
         if begin >= l || end >= l {
@@ -34,12 +52,48 @@ impl Graph {
         self.matrix[begin].push(end)
         // self.matrix[begin][end] = 1
     }
-    pub fn new_iter<I: std::iter::Iterator<Item = (usize, usize)>>(iter: I, size: usize) -> Graph {
-        let mut g = Graph::new(size);
-        iter.for_each(|arc| g.add(arc));
+    /// Ajoute un nouvel arc. On agrandit la liste des nœuds si besoin.
+    pub fn push(&mut self, (begin, end): (usize, usize)) {
+        use std::cmp::max;
+        self.matrix
+            .resize_with(max(self.len(), max(begin, end)) + 1, || vec![]);
+        self.matrix[begin].push(end);
+    }
+    /// Charge un graphe à partir d'un itérateur d'arc. Si `size` n'est pas défini, le graphe sera
+    /// agrandi pour contenir tout les sommets, sinon les sommets trop grands seront ignorés.
+    pub fn new_iter<I: std::iter::Iterator<Item = (usize, usize)>>(
+        iter: I,
+        size: Option<usize>,
+    ) -> Graph {
+        let mut g = Graph::new(size.unwrap_or(0));
+        let f: fn(&mut Graph, (usize, usize)) = match size {
+            Some(..) => Graph::add,
+            None => Graph::push,
+        };
+        iter.for_each(|arc| f(&mut g, arc));
         g
     }
-    pub fn new_tab(f: &str, size: usize) -> Result<Graph, String> {
+    /// Charge un graphe à partir du fichier `f` en CSV ou TAB suivant le sont préfix.
+    /// voir les méthodes `load_csv` et `load_tab` pour plus de détails.
+    pub fn load(f: &str, size: Option<usize>) -> Result<Graph, String> {
+        match f.strip_suffix(".csv") {
+            Some(..) => return Graph::load_csv(f, size),
+            _ => {}
+        }
+
+        match f.strip_suffix(".txt") {
+            Some(..) => return Graph::load_tab(f, size),
+            _ => {}
+        }
+
+        Err(format!("Unknow extension of the file {:?}", f))
+    }
+
+    /// Charge un graphe à partir du fichier pointé par `f`; le fichier peut contenir des lignes
+    /// vides, des commentaires précédés d'un croisillon `'#'`. Les arcs sont constitué du sommet
+    /// de départ des espaces et le sommet d'arrivée. Si `size` n'est pas défini, le graphe sera
+    /// agrandi pour contenir tout les sommets, sinon les sommets trop grands seront ignorés.
+    pub fn load_tab(f: &str, size: Option<usize>) -> Result<Graph, String> {
         use std::io::prelude::*;
         Ok(Graph::new_iter(
             std::io::BufReader::new(
@@ -68,7 +122,11 @@ impl Graph {
             size,
         ))
     }
-    pub fn new_csv(f: &str, size: usize) -> Result<Graph, String> {
+    /// Charge un graphe à partir du fichier pointé par `f`; la première ligne du fichier est ignorée,
+    /// les autres lignes doivent contenir le sommet de départ, une virgule et le sommet d'arrivé.
+    /// Si `size` n'est pas défini, le graphe sera agrandi pour contenir tout les sommets, sinon les
+    /// sommets trop grands seront ignorés.
+    pub fn load_csv(f: &str, size: Option<usize>) -> Result<Graph, String> {
         use std::io::prelude::*;
         Ok(Graph::new_iter(
             std::io::BufReader::new(
@@ -108,9 +166,10 @@ impl Graph {
     pub fn len(&self) -> usize {
         self.matrix.len()
     }
+    /// Calcul la distance en prenant tous les sommets comme origine pour l'algorithme de Disktra.
     fn distance_by_dijkstra(&self) -> Option<usize> {
         let mut last_print = Instant::now();
-        (0..self.len())
+        let m = (0..self.len())
             .inspect(|origin| {
                 use std::io::prelude::*;
                 if last_print.elapsed().subsec_millis() > 100 {
@@ -132,8 +191,12 @@ impl Graph {
             .map(|v| v.into_iter())
             .flatten()
             .filter_map(|opt| opt)
-            .max()
+            .max();
+
+        print!("\x1b[K");
+        m
     }
+    /// Lance l'algorithme de Disktra sur le graphe.
     pub fn dijkstra(&self, origin: usize) -> Vec<Option<usize>> {
         let mut dist: Vec<Option<usize>> = vec![None; self.len()];
         let mut node_todo = heap::Heap::new();
@@ -229,15 +292,48 @@ fn graph_children() {
 impl std::fmt::Display for Graph {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         for i in self.matrix.iter() {
-            for j in i.iter() {
-                if *j == 0 {
-                    f.write_str(". ")?
+            let mut node = i.clone();
+            node.sort();
+            let mut k = 0;
+            for j in 0..self.len() {
+                if node.len() > k && j == node[k] {
+                    f.write_str("1 ")?;
+                    k += 1;
                 } else {
-                    f.write_str("1 ")?
+                    f.write_str(". ")?;
                 }
             }
-            f.write_str("\r\n")?
+            f.write_str("\n")?
         }
         Ok(())
     }
+}
+#[test]
+fn graph_display() {
+    // From: https://fr.wikipedia.org/wiki/Matrice_d%27adjacence#Exemples
+    let mut g = Graph::new(8);
+    g.add((0, 1));
+    g.add((0, 4));
+    g.add((1, 6));
+    g.add((3, 6));
+    g.add((3, 2));
+    g.add((5, 0));
+    g.add((5, 1));
+    g.add((5, 2));
+    g.add((7, 6));
+
+    assert_eq!(
+        vec![
+            ". 1 . . 1 . . .",
+            ". . . . . . 1 .",
+            ". . . . . . . .",
+            ". . 1 . . . 1 .",
+            ". . . . . . . .",
+            "1 1 1 . . . . .",
+            ". . . . . . . .",
+            ". . . . . . 1 . \n",
+        ]
+        .join(" \n"),
+        format!("{}", g)
+    );
 }
