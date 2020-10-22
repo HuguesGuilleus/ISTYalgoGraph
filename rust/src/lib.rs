@@ -32,6 +32,7 @@ pub struct Stats {
     pub nodes: usize,
     pub edges: usize,
     pub max_degree: usize,
+    pub average_degree: usize,
     pub distance: Option<usize>,
     pub duration: Duration,
 }
@@ -157,6 +158,7 @@ impl Graph {
             nodes: self.len(),
             edges: self.edges(),
             max_degree: self.matrix.iter().map(|n| n.len()).max().unwrap_or(0),
+            average_degree: self.matrix.iter().map(|n| n.len()).sum::<usize>() / self.len(),
             distance: self.distance_by_dijkstra(),
             duration: before.elapsed(),
         }
