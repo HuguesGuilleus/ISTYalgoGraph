@@ -1,4 +1,6 @@
 mod parse;
+mod stack2;
+use stack2::Stack2;
 
 use std::time::{Duration, Instant};
 
@@ -210,10 +212,8 @@ impl Graph {
     }
     /// Lance l'algorithme de Disktra sur le graphe.
     pub fn dijkstra(&self, origin: usize) -> Vec<Option<usize>> {
-        use std::collections::VecDeque;
-
         let mut dist: Vec<Option<usize>> = vec![None; self.len()];
-        let mut node_todo: VecDeque<usize> = VecDeque::new();
+        let mut node_todo = Stack2::new();
         dist[origin] = Some(0);
         node_todo.push_back(origin);
 
