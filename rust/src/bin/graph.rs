@@ -1,5 +1,3 @@
-#![feature(termination_trait_lib, process_exitcode_placeholder)]
-
 fn main() -> Result<(), String> {
     // Nombre de nœud au maximum dans le graphe.
     let size: Option<usize> = Some(20_000);
