@@ -32,9 +32,9 @@ pub struct Graph {
 pub struct Stats {
     pub nodes: usize,
     pub edges: usize,
-    pub max_degree: usize,
-    pub average_degree: usize,
+    pub degree_average: usize,
     pub degree_distrib: Vec<usize>,
+    pub degree_max: usize,
     pub distance: Option<usize>,
     pub duration: Duration,
 }
@@ -156,8 +156,8 @@ impl Graph {
     /// Génère les statistiques du graphe comme demandé par l'énnoncé.
     pub fn stats(&self) -> Stats {
         let before = Instant::now();
-        let max_degree = self.matrix.iter().map(|n| n.len()).max().unwrap_or(0);
-        let mut degree_distrib: Vec<usize> = vec![0; max_degree + 1];
+        let degree_max = self.matrix.iter().map(|n| n.len()).max().unwrap_or(0);
+        let mut degree_distrib: Vec<usize> = vec![0; degree_max + 1];
         self.matrix
             .iter()
             .for_each(|n| degree_distrib[n.len()] += 1);
@@ -165,9 +165,9 @@ impl Graph {
         Stats {
             nodes: self.len(),
             edges: self.edges(),
-            max_degree: max_degree,
-            average_degree: self.matrix.iter().map(|n| n.len()).sum::<usize>() / self.len(),
+            degree_average: self.matrix.iter().map(|n| n.len()).sum::<usize>() / self.len(),
             degree_distrib: degree_distrib,
+            degree_max: degree_max,
             distance: self.distance_by_dijkstra(),
             duration: before.elapsed(),
         }
@@ -176,7 +176,7 @@ impl Graph {
     pub fn len(&self) -> usize {
         self.matrix.len()
     }
-    /// Nombre total d'arrêtes. S'exécute en temps linéaire par rapport au nombre de sommets.
+    /// Nombre total d'arrêtes. Complexité: O(S).
     pub fn edges(&self) -> usize {
         self.matrix.iter().map(|children| children.len()).sum()
     }
@@ -210,7 +210,7 @@ impl Graph {
         print!("\x1b[K");
         m
     }
-    /// Lance l'algorithme de Disktra sur le graphe.
+    /// Lance l'algorithme de Disktra sur le graphe. Complexité: O(A+S).
     pub fn dijkstra(&self, origin: usize) -> Vec<Option<usize>> {
         let mut dist: Vec<Option<usize>> = vec![None; self.len()];
         let mut node_todo = Stack2::new();
@@ -235,7 +235,8 @@ impl Graph {
 
         dist
     }
-    // Retourne tout les enfants, si ce n'est pas possible, on retourne un itérateur vide.
+    /// Retourne tout les enfants, si ce n'est pas possible, on retourne un itérateur vide.
+    /// Complexité constante.
     pub fn children(&self, parent: usize) -> impl Iterator<Item = usize> + '_ {
         if parent >= self.len() {
             &[]
