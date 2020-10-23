@@ -1,4 +1,3 @@
-mod heap;
 mod parse;
 
 use std::time::{Duration, Instant};
@@ -32,6 +31,8 @@ pub struct Stats {
     pub nodes: usize,
     pub edges: usize,
     pub max_degree: usize,
+    pub average_degree: usize,
+    pub degree_distrib: Vec<usize>,
     pub distance: Option<usize>,
     pub duration: Duration,
 }
@@ -153,10 +154,18 @@ impl Graph {
     /// Génère les statistiques du graphe comme demandé par l'énnoncé.
     pub fn stats(&self) -> Stats {
         let before = Instant::now();
+        let max_degree = self.matrix.iter().map(|n| n.len()).max().unwrap_or(0);
+        let mut degree_distrib: Vec<usize> = vec![0; max_degree + 1];
+        self.matrix
+            .iter()
+            .for_each(|n| degree_distrib[n.len()] += 1);
+
         Stats {
             nodes: self.len(),
             edges: self.edges(),
-            max_degree: self.matrix.iter().map(|n| n.len()).max().unwrap_or(0),
+            max_degree: max_degree,
+            average_degree: self.matrix.iter().map(|n| n.len()).sum::<usize>() / self.len(),
+            degree_distrib: degree_distrib,
             distance: self.distance_by_dijkstra(),
             duration: before.elapsed(),
         }
@@ -213,26 +222,24 @@ impl Graph {
     }
     /// Lance l'algorithme de Disktra sur le graphe.
     pub fn dijkstra(&self, origin: usize) -> Vec<Option<usize>> {
+        use std::collections::VecDeque;
+
         let mut dist: Vec<Option<usize>> = vec![None; self.len()];
-        let mut node_todo = heap::Heap::new();
-        let mut min_theoretical: usize = 0;
+        let mut node_todo: VecDeque<usize> = VecDeque::new();
         dist[origin] = Some(0);
-        node_todo.push(origin);
+        node_todo.push_back(origin);
 
         loop {
-            match node_todo.next(min_theoretical, |s| dist[s]) {
+            match node_todo.pop_front() {
                 None => break,
                 Some(parent) => {
-                    min_theoretical = dist[parent].unwrap_or(0);
-                    let minimum: usize = min_theoretical + 1;
-                    self.children(parent).for_each(|child| {
-                        if dist[child].is_none() {
-                            node_todo.push(child);
+                    let minimum: usize = dist[parent].unwrap_or(0) + 1;
+                    self.children(parent).for_each(|child| match dist[child] {
+                        Some(..) => {}
+                        None => {
+                            dist[child] = Some(minimum);
+                            node_todo.push_back(child);
                         }
-                        dist[child] = Some(match dist[child] {
-                            Some(old) if old < minimum => old,
-                            _ => minimum,
-                        });
                     })
                 }
             }
