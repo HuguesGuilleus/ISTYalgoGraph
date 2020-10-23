@@ -33,6 +33,7 @@ pub struct Stats {
     pub edges: usize,
     pub max_degree: usize,
     pub average_degree: usize,
+    pub degree_distrib: Vec<usize>,
     pub distance: Option<usize>,
     pub duration: Duration,
 }
@@ -154,11 +155,18 @@ impl Graph {
     /// Génère les statistiques du graphe comme demandé par l'énnoncé.
     pub fn stats(&self) -> Stats {
         let before = Instant::now();
+        let max_degree = self.matrix.iter().map(|n| n.len()).max().unwrap_or(0);
+        let mut degree_distrib: Vec<usize> = vec![0; max_degree + 1];
+        self.matrix
+            .iter()
+            .for_each(|n| degree_distrib[n.len()] += 1);
+
         Stats {
             nodes: self.len(),
             edges: self.edges(),
-            max_degree: self.matrix.iter().map(|n| n.len()).max().unwrap_or(0),
+            max_degree: max_degree,
             average_degree: self.matrix.iter().map(|n| n.len()).sum::<usize>() / self.len(),
+            degree_distrib: degree_distrib,
             distance: self.distance_by_dijkstra(),
             duration: before.elapsed(),
         }
