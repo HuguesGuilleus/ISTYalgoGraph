@@ -169,7 +169,7 @@ impl Graph {
             degree_average: self.matrix.iter().map(|n| n.len()).sum::<usize>() / self.len(),
             degree_distrib: degree_distrib,
             degree_max: degree_max,
-            distance: self.distance_by_dijkstra(),
+            distance: self.distance_by_bfs(),
             duration: before.elapsed(),
         }
     }
@@ -182,18 +182,19 @@ impl Graph {
         self.matrix.iter().map(|children| children.len()).sum()
     }
     /// Calcul la distance en prenant tous les sommets comme origine pour l'algorithme de Disktra.
-    fn distance_by_dijkstra(&self) -> Option<usize> {
+    fn distance_by_bfs(&self) -> Option<usize> {
         let mut p = printer::Printer::new();
         (0..self.len())
             .inspect(|origin| p.print(*origin))
-            .map(|origin| self.dijkstra(origin))
+            .map(|origin| self.bfs(origin))
             .map(|v| v.into_iter())
             .flatten()
             .filter_map(|opt| opt)
             .max()
     }
-    /// Lance l'algorithme de Disktra sur le graphe. Complexité: O(A+S).
-    pub fn dijkstra(&self, origin: usize) -> Vec<Option<usize>> {
+    /// Aplique l'alorithme de parcours en largeur (*Breadth-first search* en anglais) sur le
+    /// sommet `orogin`. Complexité: O(A+S).
+    pub fn bfs(&self, origin: usize) -> Vec<Option<usize>> {
         let mut dist: Vec<Option<usize>> = vec![None; self.len()];
         let mut node_todo = Stack2::new();
         dist[origin] = Some(0);
@@ -235,7 +236,7 @@ impl Graph {
     }
 }
 #[test]
-fn graph_dijkstra() {
+fn graph_bfs() {
     // From: https://fr.wikipedia.org/wiki/Matrice_d%27adjacence#Exemples
 
     let mut g = Graph::new(8);
@@ -260,10 +261,10 @@ fn graph_dijkstra() {
             Some(2),
             Some(3),
         ),
-        g.dijkstra(5)
+        g.bfs(5)
     );
 
-    assert_eq!(Some(3), g.distance_by_dijkstra());
+    assert_eq!(Some(3), g.distance_by_bfs());
 }
 #[test]
 fn graph_children() {
