@@ -295,19 +295,29 @@ fn graph_children() {
 
 impl std::fmt::Display for Graph {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        for i in self.matrix.iter() {
-            let mut node = i.clone();
-            node.sort();
-            let mut k = 0;
+        for (line, i) in self.matrix.iter().enumerate() {
+            let mut nodes = i.clone();
+            nodes.sort();
+            let mut nodes = nodes.iter().peekable();
+
             for j in 0..self.len() {
-                if node.len() > k && j == node[k] {
-                    f.write_str("1 ")?;
-                    k += 1;
-                } else {
-                    f.write_str(". ")?;
+                let mut nb = 0;
+                loop {
+                    match nodes.peek() {
+                        Some(n) if **n == j => {
+                            nb += 1;
+                            nodes.next();
+                        }
+                        _ => break,
+                    }
                 }
+                match nb {
+                    0 if j == line => f.write_str("* "),
+                    0 => f.write_str(". "),
+                    n => write!(f, "{} ", n),
+                }?;
             }
-            f.write_str("\n")?
+            f.write_str("\n")?;
         }
         Ok(())
     }
@@ -325,17 +335,18 @@ fn graph_display() {
     g.add((5, 1));
     g.add((5, 2));
     g.add((7, 6));
+    g.add((7, 6)); // Double
 
     assert_eq!(
         vec![
-            ". 1 . . 1 . . .",
-            ". . . . . . 1 .",
-            ". . . . . . . .",
-            ". . 1 . . . 1 .",
-            ". . . . . . . .",
-            "1 1 1 . . . . .",
-            ". . . . . . . .",
-            ". . . . . . 1 . \n",
+            "* 1 . . 1 . . .",
+            ". * . . . . 1 .",
+            ". . * . . . . .",
+            ". . 1 * . . 1 .",
+            ". . . . * . . .",
+            "1 1 1 . . * . .",
+            ". . . . . . * .",
+            ". . . . . . 2 * \n",
         ]
         .join(" \n"),
         format!("{}", g)
