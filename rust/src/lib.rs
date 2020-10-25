@@ -57,7 +57,33 @@ impl Graph {
 
         g
     }
+    /// Génère un graphe de Barabàsi-Albert. Utilise une complexité temporelle et mémoire linéiare.
+    pub fn gen_barabasi_albert(size: usize) -> Graph {
+        use rand::prelude::*;
 
+        let mut g = Graph::new(Some(size));
+        g.add((0, 1));
+        g.add((1, 0));
+        g.add((0, 2));
+        g.add((2, 0));
+        g.add((2, 1));
+        g.add((1, 2));
+
+        let mut p: Vec<usize> = Vec::with_capacity(size * 4);
+        p.extend_from_slice(&[0, 0, 1, 1, 2, 2]);
+
+        let mut r = rand::thread_rng();
+        for i in 3..size {
+            for _ in 0..2 {
+                let j = p[r.gen::<usize>() % p.len()];
+                p.push(i);
+                p.push(j);
+                g.add((j, i));
+            }
+        }
+
+        g
+    }
     /// Créé un nouveau graphe vide. Pour ajouter des sommets utiliser les méthodes `add` ou `push`.
     pub fn new(size: Option<usize>) -> Graph {
         Graph {
