@@ -25,7 +25,7 @@ use std::time::{Duration, Instant};
 /// ```
 #[derive(Debug)]
 pub struct Graph {
-    matrix: Vec<Vec<usize>>,
+    adjacency_list: Vec<Vec<usize>>,
 }
 
 /// Les statistiques d'un graphe. Généré par `graph.stats()`.
@@ -50,7 +50,7 @@ impl Graph {
         for i in 0..size {
             for j in 0..size {
                 if r.gen::<bool>() {
-                    g.matrix[i].push(j);
+                    g.adjacency_list[i].push(j);
                 }
             }
         }
@@ -87,7 +87,7 @@ impl Graph {
     /// Créé un nouveau graphe vide. Pour ajouter des sommets utiliser les méthodes `add` ou `push`.
     pub fn new(size: Option<usize>) -> Graph {
         Graph {
-            matrix: vec![vec![0; 0]; size.unwrap_or(0)],
+            adjacency_list: vec![vec![0; 0]; size.unwrap_or(0)],
         }
     }
     /// Ajoute un nouvel arc si `begin` et `end` sont inférieur à `self.len()`.
@@ -96,14 +96,14 @@ impl Graph {
         if begin >= l || end >= l {
             return;
         }
-        self.matrix[begin].push(end)
+        self.adjacency_list[begin].push(end)
     }
     /// Ajoute un nouvel arc. On agrandit la liste des nœuds si besoin.
     pub fn push(&mut self, (begin, end): (usize, usize)) {
         use std::cmp::max;
-        self.matrix
+        self.adjacency_list
             .resize_with(max(self.len(), max(begin, end)) + 1, || vec![]);
-        self.matrix[begin].push(end);
+        self.adjacency_list[begin].push(end);
     }
     /// Charge un graphe à partir d'un itérateur d'arc. Si `size` n'est pas défini, le graphe sera
     /// agrandi pour contenir tout les sommets, sinon les sommets trop grands seront ignorés.
@@ -198,16 +198,21 @@ impl Graph {
     /// Génère les statistiques du graphe comme demandé par l'énnoncé.
     pub fn stats(&self) -> Stats {
         let before = Instant::now();
-        let degree_max = self.matrix.iter().map(|n| n.len()).max().unwrap_or(0);
+        let degree_max = self
+            .adjacency_list
+            .iter()
+            .map(|n| n.len())
+            .max()
+            .unwrap_or(0);
         let mut degree_distrib: Vec<usize> = vec![0; degree_max + 1];
-        self.matrix
+        self.adjacency_list
             .iter()
             .for_each(|n| degree_distrib[n.len()] += 1);
 
         Stats {
             nodes: self.len(),
             edges: self.edges(),
-            degree_average: self.matrix.iter().map(|n| n.len()).sum::<usize>() / self.len(),
+            degree_average: self.adjacency_list.iter().map(|n| n.len()).sum::<usize>() / self.len(),
             degree_distrib: degree_distrib,
             degree_max: degree_max,
             distance: self.distance_by_bfs(),
@@ -216,11 +221,14 @@ impl Graph {
     }
     /// Nombre total de sommets. Complexité constante.
     pub fn len(&self) -> usize {
-        self.matrix.len()
+        self.adjacency_list.len()
     }
     /// Nombre total d'arrêtes. Complexité: O(S).
     pub fn edges(&self) -> usize {
-        self.matrix.iter().map(|children| children.len()).sum()
+        self.adjacency_list
+            .iter()
+            .map(|children| children.len())
+            .sum()
     }
     /// Calcul la distance en prenant tous les sommets comme origine pour l'algorithme de Disktra.
     fn distance_by_bfs(&self) -> Option<usize> {
@@ -265,7 +273,7 @@ impl Graph {
         if parent >= self.len() {
             &[]
         } else {
-            &self.matrix[parent][..]
+            &self.adjacency_list[parent][..]
         }
         .iter()
         .copied()
@@ -321,7 +329,7 @@ fn graph_children() {
 
 impl std::fmt::Display for Graph {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        for (line, i) in self.matrix.iter().enumerate() {
+        for (line, i) in self.adjacency_list.iter().enumerate() {
             let mut nodes = i.clone();
             nodes.sort();
             let mut nodes = nodes.iter().peekable();
