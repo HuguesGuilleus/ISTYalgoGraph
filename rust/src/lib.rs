@@ -1,4 +1,5 @@
 mod parse;
+mod printer;
 mod stack2;
 use stack2::Stack2;
 
@@ -182,33 +183,14 @@ impl Graph {
     }
     /// Calcul la distance en prenant tous les sommets comme origine pour l'algorithme de Disktra.
     fn distance_by_dijkstra(&self) -> Option<usize> {
-        let mut last_print = Instant::now();
-        let m = (0..self.len())
-            .inspect(|origin| {
-                use std::io::prelude::*;
-                if last_print.elapsed().subsec_millis() > 100 {
-                    fn print_3digit(n: usize) {
-                        if n == 0 {
-                            return;
-                        }
-                        print_3digit(n / 1000);
-                        print!("{:03} ", n % 1000);
-                    }
-                    print!("\x1b[K origin=");
-                    print_3digit(*origin);
-                    print!("\x1b[1G");
-                    std::io::stdout().flush().unwrap();
-                    last_print = Instant::now();
-                }
-            })
+        let mut p = printer::Printer::new();
+        (0..self.len())
+            .inspect(|origin| p.print(*origin))
             .map(|origin| self.dijkstra(origin))
             .map(|v| v.into_iter())
             .flatten()
             .filter_map(|opt| opt)
-            .max();
-
-        print!("\x1b[K");
-        m
+            .max()
     }
     /// Lance l'algorithme de Disktra sur le graphe. Complexité: O(A+S).
     pub fn dijkstra(&self, origin: usize) -> Vec<Option<usize>> {
