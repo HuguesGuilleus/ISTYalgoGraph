@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 /// Un graphe, il contient une liste où chaque sommet a ses enfants.
 /// ```
 /// // From: https://fr.wikipedia.org/wiki/Matrice_d%27adjacence#Exemples
-/// let mut g = graph::Graph::new(8);
+/// let mut g = graph::Graph::new(Some(8));
 /// g.add((0, 1));
 /// g.add((0, 4));
 /// g.add((1, 6));
@@ -24,7 +24,6 @@ use std::time::{Duration, Instant};
 /// ```
 #[derive(Debug)]
 pub struct Graph {
-    // matrix: Vec<Vec<usize>>,
     matrix: Vec<Vec<usize>>,
 }
 
@@ -42,10 +41,9 @@ pub struct Stats {
 
 impl Graph {
     /// Créé un nouveau graphe vide. Pour ajouter des sommets utiliser les méthodes `add` ou `push`.
-    pub fn new(size: usize) -> Graph {
+    pub fn new(size: Option<usize>) -> Graph {
         Graph {
-            matrix: vec![vec![0; 0]; size],
-            // matrix: vec![vec![0; size]; size],
+            matrix: vec![vec![0; 0]; size.unwrap_or(0)],
         }
     }
     /// Ajoute un nouvel arc si `begin` et `end` sont inférieur à `self.len()`.
@@ -55,7 +53,6 @@ impl Graph {
             return;
         }
         self.matrix[begin].push(end)
-        // self.matrix[begin][end] = 1
     }
     /// Ajoute un nouvel arc. On agrandit la liste des nœuds si besoin.
     pub fn push(&mut self, (begin, end): (usize, usize)) {
@@ -70,7 +67,7 @@ impl Graph {
         iter: I,
         size: Option<usize>,
     ) -> Graph {
-        let mut g = Graph::new(size.unwrap_or(0));
+        let mut g = Graph::new(size);
         let f: fn(&mut Graph, (usize, usize)) = match size {
             Some(..) => Graph::add,
             None => Graph::push,
@@ -228,18 +225,13 @@ impl Graph {
         }
         .iter()
         .copied()
-        // .enumerate()
-        // .filter_map(|(i, &a)| match a > 0 {
-        //     true => Some(i),
-        //     false => None,
-        // })
     }
 }
 #[test]
 fn graph_bfs() {
     // From: https://fr.wikipedia.org/wiki/Matrice_d%27adjacence#Exemples
 
-    let mut g = Graph::new(8);
+    let mut g = Graph::new(Some(8));
     g.add((0, 1));
     g.add((0, 4));
     g.add((1, 6));
@@ -268,7 +260,7 @@ fn graph_bfs() {
 }
 #[test]
 fn graph_children() {
-    let mut g = Graph::new(8);
+    let mut g = Graph::new(Some(8));
     g.add((0, 1));
     g.add((0, 4));
     g.add((1, 6));
@@ -305,7 +297,7 @@ impl std::fmt::Display for Graph {
 #[test]
 fn graph_display() {
     // From: https://fr.wikipedia.org/wiki/Matrice_d%27adjacence#Exemples
-    let mut g = Graph::new(8);
+    let mut g = Graph::new(Some(8));
     g.add((0, 1));
     g.add((0, 4));
     g.add((1, 6));
