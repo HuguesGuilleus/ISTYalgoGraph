@@ -4,6 +4,7 @@ mod stack2;
 use rand;
 use stack2::Stack2;
 
+use std::fs::File;
 use std::time::{Duration, Instant};
 
 /// Un graphe, il contient une liste où chaque sommet a ses enfants.
@@ -134,7 +135,6 @@ impl Graph {
 
         Err(format!("Unknow extension of the file {:?}", f))
     }
-
     /// Charge un graphe à partir du fichier pointé par `f`; le fichier peut contenir des lignes
     /// vides, des commentaires précédés d'un croisillon `'#'`. Les arcs sont constitué du sommet
     /// de départ des espaces et le sommet d'arrivée. Si `size` n'est pas défini, le graphe sera
@@ -193,6 +193,29 @@ impl Graph {
             }),
             size,
         ))
+    }
+    /// Enregistre le graphe dans le fichier `name`; le format est déterminé par les extions qui
+    /// penvent être ".txt" ou bien ".csv".
+    pub fn save(&self, name: &str) -> Result<(), String> {
+        use std::io::Write;
+        let e = |err| format!("Fail to write into {:?} {}", name, err);
+        let mut file = File::create(name).map_err(e)?;
+
+        let writer = if name.strip_suffix(".csv").is_some() {
+            write!(file, "id1,id2\n").map_err(e)?;
+            parse::save_csv
+        } else if name.strip_suffix(".txt").is_some() {
+            write!(file, "# FromNodeId	ToNodeId\n").map_err(e)?;
+            parse::save_txt
+        } else {
+            return Err(format!("Unknow extension of the file {:?}", name));
+        };
+
+        self.edge_list()
+            .map(|couple| writer(&mut file, couple).map_err(e))
+            .filter(|r| r.is_err())
+            .next()
+            .unwrap_or(Ok(()))
     }
 
     /// Génère les statistiques du graphe comme demandé par l'énnoncé.
@@ -277,6 +300,14 @@ impl Graph {
         }
         .iter()
         .copied()
+    }
+    /// Return an iterator over all edges.
+    pub fn edge_list(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
+        self.adjacency_list
+            .iter()
+            .enumerate()
+            .map(|(p, parent): (usize, _)| parent.iter().map(move |child: &usize| (p, *child)))
+            .flatten()
     }
 }
 #[test]

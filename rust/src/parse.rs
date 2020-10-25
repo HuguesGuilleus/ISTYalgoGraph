@@ -39,3 +39,11 @@ pub fn tab(s: &str) -> Result<(usize, usize), String> {
 fn test_tab() {
     assert_eq!(Ok((1, 2)), tab("1	2"))
 }
+
+pub fn save_csv<W: std::io::Write>(w: &mut W, couple: (usize, usize)) -> std::io::Result<()> {
+    write!(w, "{},{}\n", couple.0, couple.1)
+}
+
+pub fn save_txt<W: std::io::Write>(w: &mut W, couple: (usize, usize)) -> std::io::Result<()> {
+    write!(w, "{}\t{}\n", couple.0, couple.1)
+}
