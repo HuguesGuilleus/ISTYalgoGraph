@@ -1,6 +1,7 @@
 mod parse;
 mod printer;
 mod stack2;
+use rand;
 use stack2::Stack2;
 
 use std::time::{Duration, Instant};
@@ -40,6 +41,23 @@ pub struct Stats {
 }
 
 impl Graph {
+    /// Génération de graphe avec le modèle d'Edgar Gilbert.
+    pub fn gen_gilbert(size: usize) -> Graph {
+        use rand::prelude::*;
+        let mut g = Graph::new(Some(size));
+        let mut r = rand::thread_rng();
+
+        for i in 0..size {
+            for j in 0..size {
+                if r.gen::<bool>() {
+                    g.matrix[i].push(j);
+                }
+            }
+        }
+
+        g
+    }
+
     /// Créé un nouveau graphe vide. Pour ajouter des sommets utiliser les méthodes `add` ou `push`.
     pub fn new(size: Option<usize>) -> Graph {
         Graph {
