@@ -10,6 +10,25 @@ class Graph:
         for i in range(size or 0):
             self.adjacency_list.append([])
 
+    def load(f, size):
+        g = Graph(size)
+        if size == None:
+            save = g.push
+        else:
+            save = g.add
+
+        if f.endswith(".csv"):
+            loader = parse.load_csv
+        elif f.endswith(".txt"):
+            loader = parse.load_txt
+        else:
+            raise Exception("Unknown extention to find a loader")
+
+        with open(f, "r") as f:
+            loader(f, save)
+
+        return g
+
     def __repr__(self):
         """
         >>> g = Graph(8);
@@ -79,19 +98,6 @@ class Graph:
             for j in range(size):
                 if secrets.randbits(1):
                     g.add((i, j))
-        return g
-
-    def load_csv(f, size):
-        g = Graph(size)
-        if size == None:
-            save = g.push
-        else:
-            save = g.add
-
-        with open(f, "r") as f:
-            for line in f.readlines(0)[1:]:
-                save(parse.parse_csv(line[:-1]))
-
         return g
 
     def len(self):
