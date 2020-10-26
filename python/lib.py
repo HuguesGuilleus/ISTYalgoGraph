@@ -26,5 +26,18 @@ class Graph:
         self.adjacency_list[begin].append(end)
 
     def len(self):
-        """Retourne le nombre de sommet du graphe. Complexité O(1)"""
+        """Retourne le nombre de sommet du graphe. Complexité O(1)
+        >>> g = Graph(0); g.push((2,1)); g.add((0,2)); g.len()
+        3
+        """
         return len(self.adjacency_list)
+
+    def edges(self):
+        """Retourne le nombre total d'arrêtes du graphe. Complexité O(S)
+        >>> g = Graph(3); g.push((2,1)); g.add((0,2)); g.edges()
+        2
+        """
+        sum = 0
+        for childs in self.adjacency_list:
+            sum += len(childs)
+        return sum
