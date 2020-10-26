@@ -29,6 +29,26 @@ class Graph:
 
         return g
 
+    def save(self, out):
+        """
+        Enregistre le graphe dans le fichier out; le format est déterminé par
+        les extentions qui penvent être ".txt" ou bien ".csv".
+        """
+        if out.endswith(".csv"):
+            fisrt = "from,to\n"
+            saver = parse.save_csv
+        elif out.endswith(".txt"):
+            fisrt = "# from\tto\n"
+            saver = parse.save_txt
+        else:
+            raise Exception("Unknown extention to find a saver")
+
+        with open(out, "w") as f:
+            f.write(fisrt)
+            for p, childs in enumerate(self.adjacency_list):
+                for c in childs:
+                    saver(f, (p, c))
+
     def __repr__(self):
         """
         >>> g = Graph(8);
