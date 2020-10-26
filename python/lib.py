@@ -1,4 +1,5 @@
 import secrets
+import parse
 
 
 class Graph:
@@ -78,6 +79,19 @@ class Graph:
             for j in range(size):
                 if secrets.randbits(1):
                     g.add((i, j))
+        return g
+
+    def load_csv(f, size):
+        g = Graph(size)
+        if size == None:
+            save = g.push
+        else:
+            save = g.add
+
+        with open(f, "r") as f:
+            for line in f.readlines(0)[1:]:
+                save(parse.parse_csv(line[:-1]))
+
         return g
 
     def len(self):
