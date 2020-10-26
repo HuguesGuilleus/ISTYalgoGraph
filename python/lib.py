@@ -1,3 +1,6 @@
+import secrets
+
+
 class Graph:
     """Un graphe, il contient une liste où chaque sommet a ses enfants."""
 
@@ -67,6 +70,15 @@ class Graph:
             for i in range(l, m):
                 self.adjacency_list.append([])
         self.adjacency_list[begin].append(end)
+
+    def gen_gilbert(size):
+        """Génération de graphe avec le modèle d'Edgar Gilbert."""
+        g = Graph(size)
+        for i in range(size):
+            for j in range(size):
+                if secrets.randbits(1):
+                    g.add((i, j))
+        return g
 
     def len(self):
         """Retourne le nombre de sommet du graphe. Complexité O(1)
