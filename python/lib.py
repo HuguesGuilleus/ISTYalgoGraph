@@ -128,7 +128,7 @@ class Graph:
         return len(self.adjacency_list)
 
     def edges(self):
-        """Retourne le nombre total d'arrêtes du graphe. Complexité O(S)
+        """Retourne le nombre total d’arêtes du graphe. Complexité O(S)
         >>> g = Graph(3); g.push((2,1)); g.add((0,2)); g.edges()
         2
         """
@@ -137,12 +137,15 @@ class Graph:
             sum += len(childs)
         return sum
 
-    def bfs(self, origin):
+    def distance_by_bfs(self, printer=True):
         """
-        Aplique l'alorithme de parcours en largeur (*Breadth-first search* en
-        anglais) sur le sommet `orogin`. Complexité: O(A+S).
+        Calcule la distance en cherchant le plus long court chemin à partir de
+        tous les sommets. Complexité: O(S*(A+S)).
 
-        # From: https://fr.wikipedia.org/wiki/Matrice_d%27adjacence#Exemples
+        L'argument `printer` permet de désactiver l'affichage du sommet en cours
+        de traitement.
+
+        # Source: https://fr.wikipedia.org/wiki/Matrice_d%27adjacence#Exemples
         >>> g = Graph(8)
         >>> g.add((0, 1))
         >>> g.add((0, 4))
@@ -152,7 +155,41 @@ class Graph:
         >>> g.add((5, 0))
         >>> g.add((5, 1))
         >>> g.add((5, 2))
-        >>> g.add((6, 7))
+        >>> g.add((6, 7)) # modifié par rapport à Wikipédia
+        >>> g.distance_by_bfs(False)
+        3
+        """
+        max = None
+        for origin in range(self.len()):
+            if printer:
+                print(f"origin: {origin:,}", end="\x1b[1G")
+            for long in self.bfs(origin):
+                if max == None:
+                    max = long
+                elif long and long > max:
+                    max = long
+
+        if printer:
+            print("\x1b[K", end="")
+
+        return max
+
+    def bfs(self, origin):
+        """
+        Applique l’algorithme de parcours en largeur (*Breadth-first search* en
+        anglais) sur le sommet `origin`. Complexité: O(A+S).
+
+        # Source: https://fr.wikipedia.org/wiki/Matrice_d%27adjacence#Exemples
+        >>> g = Graph(8)
+        >>> g.add((0, 1))
+        >>> g.add((0, 4))
+        >>> g.add((1, 6))
+        >>> g.add((3, 6))
+        >>> g.add((3, 2))
+        >>> g.add((5, 0))
+        >>> g.add((5, 1))
+        >>> g.add((5, 2))
+        >>> g.add((6, 7)) # modifié par rapport à Wikipédia
         >>> g.bfs(5)
         [1, 1, 1, None, 2, 0, 2, 3]
         """
