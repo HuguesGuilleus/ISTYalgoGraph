@@ -4,12 +4,12 @@ fn main() -> Result<(), String> {
     // let size: Option<usize> = None;
 
     // Fichier à charger.
-    // let f = "../x/db/FacebookSites.csv";
-    let f = "../x/db/GitHub.csv";
-    // let f = "../x/db/RoadNetwork.txt";
-    // let f = "../x/db/twitchDE.csv";
-    // let f = "../x/db/Wikipedia1.csv";
-    // let f = "../x/db/Wikipedia2.csv";
+    // let f = "../db/FacebookSites.csv";
+    let f = "../db/GitHub.csv";
+    // let f = "../db/RoadNetwork.txt";
+    // let f = "../db/twitchDE.csv";
+    // let f = "../db/Wikipedia1.csv";
+    // let f = "../db/Wikipedia2.csv";
 
     let mut s = graph::Graph::load(f, size)?.stats();
     s.degree_distrib = vec![];
