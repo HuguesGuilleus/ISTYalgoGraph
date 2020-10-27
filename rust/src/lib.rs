@@ -221,6 +221,8 @@ impl Graph {
     /// Génère les statistiques du graphe comme demandé par l'énnoncé.
     pub fn stats(&self) -> Stats {
         let before = Instant::now();
+
+        let edges = self.edges();
         let degree_max = self
             .adjacency_list
             .iter()
@@ -234,8 +236,8 @@ impl Graph {
 
         Stats {
             nodes: self.len(),
-            edges: self.edges(),
-            degree_average: self.adjacency_list.iter().map(|n| n.len()).sum::<usize>() / self.len(),
+            edges: edges,
+            degree_average: edges / self.len(),
             degree_distrib: degree_distrib,
             degree_max: degree_max,
             distance: self.distance_by_bfs(),
