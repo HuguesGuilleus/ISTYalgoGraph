@@ -34,7 +34,7 @@ pub struct Graph {
 pub struct Stats {
     pub nodes: usize,
     pub edges: usize,
-    pub degree_average: usize,
+    pub degree_average: f64,
     pub degree_distrib: Vec<usize>,
     pub degree_max: usize,
     pub distance: Option<usize>,
@@ -237,7 +237,7 @@ impl Graph {
         Stats {
             nodes: self.len(),
             edges: edges,
-            degree_average: edges / self.len(),
+            degree_average: (edges as f64) / (self.len() as f64),
             degree_distrib: degree_distrib,
             degree_max: degree_max,
             distance: self.distance_by_bfs(),
