@@ -136,3 +136,36 @@ class Graph:
         for childs in self.adjacency_list:
             sum += len(childs)
         return sum
+
+    def bfs(self, origin):
+        """
+        Aplique l'alorithme de parcours en largeur (*Breadth-first search* en
+        anglais) sur le sommet `orogin`. Complexité: O(A+S).
+
+        # From: https://fr.wikipedia.org/wiki/Matrice_d%27adjacence#Exemples
+        >>> g = Graph(8)
+        >>> g.add((0, 1))
+        >>> g.add((0, 4))
+        >>> g.add((1, 6))
+        >>> g.add((3, 6))
+        >>> g.add((3, 2))
+        >>> g.add((5, 0))
+        >>> g.add((5, 1))
+        >>> g.add((5, 2))
+        >>> g.add((6, 7))
+        >>> g.bfs(5)
+        [1, 1, 1, None, 2, 0, 2, 3]
+        """
+        dist = [None] * self.len()
+        dist[origin] = 0
+        node_todo = [origin]
+
+        while len(node_todo):
+            parent = node_todo.pop(0)
+            minimum = dist[parent] + 1
+            for child in self.adjacency_list[parent]:
+                if not dist[child]:
+                    dist[child] = minimum
+                    node_todo.append(child)
+
+        return dist
