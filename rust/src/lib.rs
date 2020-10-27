@@ -120,7 +120,7 @@ impl Graph {
         iter.for_each(|arc| f(&mut g, arc));
         g
     }
-    /// Charge un graphe à partir du fichier `f` en CSV ou TAB suivant le sont préfix.
+    /// Charge un graphe à partir du fichier `f` en CSV ou TAB suivant le sont préfixe.
     /// voir les méthodes `load_csv` et `load_tab` pour plus de détails.
     pub fn load(f: &str, size: Option<usize>) -> Result<Graph, String> {
         match f.strip_suffix(".csv") {
@@ -218,7 +218,7 @@ impl Graph {
             .unwrap_or(Ok(()))
     }
 
-    /// Génère les statistiques du graphe comme demandé par l'énnoncé.
+    /// Génère les statistiques du graphe comme demandé par l’énoncé.
     pub fn stats(&self) -> Stats {
         let before = Instant::now();
 
@@ -248,14 +248,15 @@ impl Graph {
     pub fn len(&self) -> usize {
         self.adjacency_list.len()
     }
-    /// Nombre total d'arrêtes. Complexité: O(S).
+    /// Nombre total d’arêtes. Complexité: O(S).
     pub fn edges(&self) -> usize {
         self.adjacency_list
             .iter()
             .map(|children| children.len())
             .sum()
     }
-    /// Calcul la distance en prenant tous les sommets comme origine pour l'algorithme de Disktra.
+    /// Calcule la distance en prenant tous les sommets comme origine et leur applique un parcours
+    /// en largeur. Complexité: O(S*(S+A))
     fn distance_by_bfs(&self) -> Option<usize> {
         let mut p = printer::Printer::new();
         (0..self.len())
@@ -266,8 +267,8 @@ impl Graph {
             .filter_map(|opt| opt)
             .max()
     }
-    /// Aplique l'alorithme de parcours en largeur (*Breadth-first search* en anglais) sur le
-    /// sommet `orogin`. Complexité: O(A+S).
+    /// Applique l’algorithme de parcours en largeur (*Breadth-first search* en anglais) sur le
+    /// sommet `origin`. Complexité: O(A+S).
     pub fn bfs(&self, origin: usize) -> Vec<Option<usize>> {
         let mut dist: Vec<Option<usize>> = vec![None; self.len()];
         let mut node_todo = Stack2::new();
@@ -303,7 +304,7 @@ impl Graph {
         .iter()
         .copied()
     }
-    /// Return an iterator over all edges.
+    /// Retourne un itérateur avec chaque arrêtes du graphe.
     pub fn edge_list(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
         self.adjacency_list
             .iter()
@@ -325,7 +326,7 @@ fn graph_bfs() {
     g.add((5, 0));
     g.add((5, 1));
     g.add((5, 2));
-    g.add((6, 7)); // moddifié par rapport à Wikipédia
+    g.add((6, 7)); // modifié par rapport à Wikipédia
 
     assert_eq!(
         vec!(
