@@ -1,5 +1,6 @@
-import secrets
+import datetime
 import parse
+import secrets
 
 
 class Graph:
@@ -136,6 +137,26 @@ class Graph:
         for childs in self.adjacency_list:
             sum += len(childs)
         return sum
+
+    def stats(self):
+        """Génère les statistiques du graphe"""
+        begin = datetime.datetime.now()
+
+        edges = self.edges()
+        degree_max = max(map(len, self.adjacency_list))
+        degree_distrib = [0] * (degree_max + 1)
+        for node in self.adjacency_list:
+            degree_distrib[len(node)] += 1
+
+        return {
+            "nodes": self.len(),
+            "edges": edges,
+            "distance": self.distance_by_bfs(),
+            "degree_average": edges / self.len(),
+            "degree_distrib": degree_distrib,
+            "degree_max": degree_max,
+            "duration": datetime.datetime.now() - begin,
+        }
 
     def distance_by_bfs(self, printer=True):
         """
