@@ -1,5 +1,5 @@
 import secrets
-
+import matplotlib.pyplot as plt
 
 class Graph:
     def __init__(self, size):
@@ -7,6 +7,8 @@ class Graph:
         self.edges = []
         self.nb_edges_tot = 0
         self.degree = []
+        self.max_degree = 0
+        self.average_degree = 0
         # initialisation des degrees des sommets à 0
         for i in range(0, size):
             self.degree.append(0)
@@ -31,14 +33,14 @@ class Graph:
                 r = secrets.randbits(1)
                 if r:
                     self.add_edge([i, j])
+                # calcule du degrer maximum et moyen
+                self.calc_max_degree()
+                self.calc_average_degree()
 
     def gen_barabasi_albert(self, m):
         n = self.n
 
         # initialisation de la clique
-        self.degree[0] = 1
-        self.degree[0] = 1
-        self.degree[0] = 1
         self.add_edge([0, 1])
         self.add_edge([0, 2])
         self.add_edge([1, 2])
@@ -53,3 +55,38 @@ class Graph:
                     self.add_edge([i, j])
                     cpt += 1
                 j += 1
+        #calcule du degrer maximum et moyen
+        self.calc_max_degree()
+        self.calc_average_degree()
+
+    def calc_max_degree(self):
+        self.max_degree = max(self.degree)
+
+    def calc_average_degree(self):
+        self.average_degree = sum(self.degree) / self.n
+
+    #***************************************************
+    #pas demander juste pour visuliser pour nous
+    def curve_vertices_degree(self):
+        x = []
+        for i in range (0, self.n):
+            x.append(i)
+        y = self.degree
+
+        plt.plot(x,y)
+        plt.show()
+    # ***************************************************
+
+    def curve_distrib_degree(self):
+        x = []
+        y = []
+        for i in range (0, self.max_degree+1):
+            x.append(i)
+            print(i)
+            y.append(self.degree.count(i))
+            print(self.degree.count(i))
+            print()
+
+
+        plt.bar(x,y)
+        plt.show()
