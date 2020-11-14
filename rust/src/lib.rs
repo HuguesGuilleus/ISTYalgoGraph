@@ -7,7 +7,7 @@ use stack2::Stack2;
 use std::fs::File;
 use std::time::{Duration, Instant};
 
-/// Un graphe, il contient une liste où chaque sommet a ses enfants.
+/// Un graphe, il contient la liste où chaque sommet a la liste de tous ses sommets voisins.
 /// ```
 /// // From: https://fr.wikipedia.org/wiki/Matrice_d%27adjacence#Exemples
 /// let mut g = graph::Graph::new(Some(8));
@@ -32,12 +32,19 @@ pub struct Graph {
 /// Les statistiques d'un graphe. Généré par `graph.stats()`.
 #[derive(Debug)]
 pub struct Stats {
+    /// Nombre de sommets
     pub nodes: usize,
+    /// Nombre d'arrêtes
     pub edges: usize,
+    /// Degrée moyen
     pub degree_average: f64,
+    /// Fréquence d'apparition d'un degré. Longeur = degree_max+1
     pub degree_distrib: Vec<usize>,
+    /// Degré maximale
     pub degree_max: usize,
+    /// Distance = plus long plus court chemin.
     pub distance: Option<usize>,
+    /// Temps pour obtenir ces statistiques.
     pub duration: Duration,
 }
 
@@ -85,7 +92,7 @@ impl Graph {
 
         g
     }
-    /// Créé un nouveau graphe vide. Pour ajouter des sommets utiliser les méthodes `add` ou `push`.
+    /// Crée un nouveau graphe vide. Pour ajouter des sommets utiliser les méthodes `add` ou `push`.
     pub fn new(size: Option<usize>) -> Graph {
         Graph {
             adjacency_list: vec![vec![0; 0]; size.unwrap_or(0)],
@@ -136,9 +143,9 @@ impl Graph {
         Err(format!("Unknow extension of the file {:?}", f))
     }
     /// Charge un graphe à partir du fichier pointé par `f`; le fichier peut contenir des lignes
-    /// vides, des commentaires précédés d'un croisillon `'#'`. Les arcs sont constitué du sommet
-    /// de départ des espaces et le sommet d'arrivée. Si `size` n'est pas défini, le graphe sera
-    /// agrandi pour contenir tout les sommets, sinon les sommets trop grands seront ignorés.
+    /// vides, des commentaires précédés d'un croisillon `'#'`. Les arêtes sont constitués de deux
+    /// sommets séparér par des espaces ou des tabulations. Si `size` n'est pas défini, le graphe
+    /// sera agrandi pour contenir tout les sommets, sinon les sommets trop grands seront ignorés.
     pub fn load_tab(f: &str, size: Option<usize>) -> Result<Graph, String> {
         use std::io::prelude::*;
         Ok(Graph::new_iter(
@@ -194,7 +201,7 @@ impl Graph {
             size,
         ))
     }
-    /// Enregistre le graphe dans le fichier `name`; le format est déterminé par les extions qui
+    /// Enregistre le graphe dans le fichier `name`; le format est déterminé par les extentions qui
     /// penvent être ".txt" ou bien ".csv".
     pub fn save(&self, name: &str) -> Result<(), String> {
         use std::io::Write;
