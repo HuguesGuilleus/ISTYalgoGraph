@@ -1,8 +1,6 @@
 mod parse;
 mod printer;
-mod stack2;
 use rand;
-use stack2::Stack2;
 
 use std::fs::File;
 use std::time::{Duration, Instant};
@@ -278,7 +276,7 @@ impl Graph {
     /// sommet `origin`. Complexité: O(A+S).
     pub fn bfs(&self, origin: usize) -> Vec<Option<usize>> {
         let mut dist: Vec<Option<usize>> = vec![None; self.len()];
-        let mut node_todo = Stack2::new();
+        let mut node_todo = std::collections::VecDeque::new();
         dist[origin] = Some(0);
         node_todo.push_back(origin);
 
@@ -287,9 +285,8 @@ impl Graph {
                 None => break,
                 Some(parent) => {
                     let minimum: usize = dist[parent].unwrap_or(0) + 1;
-                    self.children(parent).for_each(|child| match dist[child] {
-                        Some(..) => {}
-                        None => {
+                    self.children(parent).for_each(|child| {
+                        if dist[child].is_none() {
                             dist[child] = Some(minimum);
                             node_todo.push_back(child);
                         }
