@@ -97,19 +97,23 @@ impl Graph {
         }
     }
     /// Ajoute un nouvel arc si `begin` et `end` sont inférieur à `self.len()`.
-    pub fn add(&mut self, (begin, end): (usize, usize)) {
+    pub fn add(&mut self, (a, b): (usize, usize)) {
         let l = self.len();
-        if begin >= l || end >= l {
+        if a >= l || b >= l {
             return;
         }
-        self.adjacency_list[begin].push(end)
+        self.adjacency_list[a].push(b);
+        self.adjacency_list[b].push(a);
     }
     /// Ajoute un nouvel arc. On agrandit la liste des nœuds si besoin.
-    pub fn push(&mut self, (begin, end): (usize, usize)) {
+    pub fn push(&mut self, (a, b): (usize, usize)) {
         use std::cmp::max;
-        self.adjacency_list
-            .resize_with(max(self.len(), max(begin, end)) + 1, || vec![]);
-        self.adjacency_list[begin].push(end);
+
+        let l = max(self.len(), max(a, b) + 1);
+        self.adjacency_list.resize_with(l, || vec![]);
+
+        self.adjacency_list[a].push(b);
+        self.adjacency_list[b].push(a);
     }
     /// Charge un graphe à partir d'un itérateur d'arc. Si `size` n'est pas défini, le graphe sera
     /// agrandi pour contenir tout les sommets, sinon les sommets trop grands seront ignorés.
@@ -217,6 +221,7 @@ impl Graph {
         };
 
         self.edge_list()
+            .filter(|couple| couple.0 < couple.1)
             .map(|couple| writer(&mut file, couple).map_err(e))
             .filter(|r| r.is_err())
             .next()
@@ -242,7 +247,7 @@ impl Graph {
         Stats {
             nodes: self.len(),
             edges: edges,
-            degree_average: (edges as f64) / (self.len() as f64),
+            degree_average: ((edges * 2) as f64) / (self.len() as f64),
             degree_distrib: degree_distrib,
             degree_max: degree_max,
             distance: self.distance_by_bfs(),
@@ -253,12 +258,13 @@ impl Graph {
     pub fn len(&self) -> usize {
         self.adjacency_list.len()
     }
-    /// Nombre total d’arêtes. Complexité: O(S).
+    /// Nombre total d'arêtes. Complexité: O(S).
     pub fn edges(&self) -> usize {
         self.adjacency_list
             .iter()
             .map(|children| children.len())
-            .sum()
+            .sum::<usize>()
+            / 2
     }
     /// Calcule la distance en prenant tous les sommets comme origine et leur applique un parcours
     /// en largeur. Complexité: O(S*(S+A))
@@ -318,8 +324,26 @@ impl Graph {
     }
 }
 #[test]
+fn graph_add() {
+    let mut g = Graph::new(Some(2));
+    g.add((0, 1));
+
+    assert_eq!(2, g.adjacency_list.len());
+    assert_eq!(vec![1], g.adjacency_list[0]);
+    assert_eq!(vec![0], g.adjacency_list[1]);
+}
+#[test]
+fn graph_push() {
+    let mut g = Graph::new(None);
+    g.push((0, 1));
+
+    assert_eq!(2, g.adjacency_list.len());
+    assert_eq!(vec![1], g.adjacency_list[0]);
+    assert_eq!(vec![0], g.adjacency_list[1]);
+}
+#[test]
 fn graph_bfs() {
-    // From: https://fr.wikipedia.org/wiki/Matrice_d%27adjacence#Exemples
+    // Source: https://fr.wikipedia.org/wiki/Matrice_d%27adjacence#Exemples mais non orienté
 
     let mut g = Graph::new(Some(8));
     g.add((0, 1));
@@ -330,14 +354,14 @@ fn graph_bfs() {
     g.add((5, 0));
     g.add((5, 1));
     g.add((5, 2));
-    g.add((6, 7)); // modifié par rapport à Wikipédia
+    g.add((6, 7));
 
     assert_eq!(
         vec!(
             Some(1),
             Some(1),
             Some(1),
-            None,
+            Some(2),
             Some(2),
             Some(0), // 5 (origin)
             Some(2),
@@ -346,7 +370,7 @@ fn graph_bfs() {
         g.bfs(5)
     );
 
-    assert_eq!(Some(3), g.distance_by_bfs());
+    assert_eq!(Some(4), g.distance_by_bfs());
 }
 #[test]
 fn graph_children() {
@@ -361,7 +385,7 @@ fn graph_children() {
     g.add((5, 2));
     g.add((7, 6));
 
-    assert_eq!(vec![0; 0], g.children(2).collect::<Vec<usize>>());
+    assert_eq!(vec![3, 5], g.children(2).collect::<Vec<usize>>());
     assert_eq!(vec![0, 1, 2], g.children(5).collect::<Vec<usize>>());
 }
 
@@ -411,13 +435,13 @@ fn graph_display() {
 
     assert_eq!(
         vec![
-            "* 1 . . 1 . . .",
-            ". * . . . . 1 .",
-            ". . * . . . . .",
+            "* 1 . . 1 1 . .",
+            "1 * . . . 1 1 .",
+            ". . * 1 . 1 . .",
             ". . 1 * . . 1 .",
-            ". . . . * . . .",
+            "1 . . . * . . .",
             "1 1 1 . . * . .",
-            ". . . . . . * .",
+            ". 1 . 1 . . * 2",
             ". . . . . . 2 * \n",
         ]
         .join(" \n"),
