@@ -4,14 +4,22 @@ import secrets
 
 
 class Graph:
-    """Un graphe, il contient une liste où chaque sommet a ses enfants."""
+    """Un graphe, il contient une liste où chaque sommet a ses voisins."""
 
     def __init__(self, size):
+        """
+        Initialise le graphe. Créer la liste d'adjacence avec une taille
+        `size` ou bien zéro si `size` vaut `None`.
+        """
         self.adjacency_list = []
         for i in range(size or 0):
             self.adjacency_list.append([])
 
     def load(f, size):
+        """
+        Charge les arêtes à partir fichier le format est déterminé par les
+        extentions qui penvent être ".txt" ou bien ".csv".
+        """
         g = Graph(size)
         if size == None:
             save = g.push
@@ -34,12 +42,25 @@ class Graph:
         """
         Enregistre le graphe dans le fichier out; le format est déterminé par
         les extentions qui penvent être ".txt" ou bien ".csv".
+        >>> import os
+        >>> g = Graph(3)
+        >>> g.add((0, 1))
+        >>> g.add((1, 2))
+        >>> g.add((0, 2))
+        >>> g.save("x.csv")
+        >>> with open("x.csv", "r") as f: print(f.read())
+        id_1,id_2
+        0,1
+        0,2
+        1,2
+        >>> os.remove("x.csv")
         """
+
         if out.endswith(".csv"):
-            fisrt = "from,to\n"
+            fisrt = "id_1,id_2"
             saver = parse.save_csv
         elif out.endswith(".txt"):
-            fisrt = "# from\tto\n"
+            fisrt = "# from\tto"
             saver = parse.save_txt
         else:
             raise Exception("Unknown extention to find a saver")
@@ -48,7 +69,8 @@ class Graph:
             f.write(fisrt)
             for p, childs in enumerate(self.adjacency_list):
                 for c in childs:
-                    saver(f, (p, c))
+                    if p < c:
+                        saver(f, (p, c))
 
     def __repr__(self):
         """
@@ -64,15 +86,24 @@ class Graph:
         >>> g.add((7, 6));
         >>> g.add((7, 6));
         >>> g
-        * 1 . . 1 . . .
-        . * . . . . 1 .
-        . . * . . . . .
+        * 1 . . 1 1 . .
+        1 * . . . 1 1 .
+        . . * 1 . 1 . .
         . . 1 * . . 1 .
-        . . . . * . . .
+        1 . . . * . . .
         1 1 1 . . * . .
-        . . . . . . * .
+        . 1 . 1 . . * 2
         . . . . . . 2 *
         """
+        # * 1 . . 1 . . .
+        # . * . . . . 1 .
+        # . . * . . . . .
+        # . . 1 * . . 1 .
+        # . . . . * . . .
+        # 1 1 1 . . * . .
+        # . . . . . . * .
+        # . . . . . . 2 *
+
         s = ""
         for line, child in enumerate(self.adjacency_list):
             nodes = child.copy()
@@ -94,23 +125,30 @@ class Graph:
         return s[:-1]
 
     def add(self, arc):
-        """Ajoute l'arc au graphe si le sommet de départ et d'arrivé sont dans le graphe."""
-        begin = arc[0]
-        end = arc[1]
+        """
+        Ajoute l'arête au graphe si le sommet de départ et d'arrivé sont dans
+        le graphe; dans le cas contraire, l'arête est ignorée.
+        """
+        a, b = arc
         l = self.len()
-        if begin >= l or end >= l:
+        if a >= l or b >= l:
             return
-        self.adjacency_list[begin].append(end)
+        self.adjacency_list[a].append(b)
+        self.adjacency_list[b].append(a)
 
     def push(self, arc):
-        begin = arc[0]
-        end = arc[1]
+        """
+        Ajoute, l'arête au graphe. La liste des nœuds est agrandit si besoin.
+        """
+        a, b = arc
         l = self.len()
-        m = max(begin, end) + 1
+        m = max(a, b) + 1
         if m > l:
             for i in range(l, m):
                 self.adjacency_list.append([])
-        self.adjacency_list[begin].append(end)
+
+        self.adjacency_list[a].append(b)
+        self.adjacency_list[b].append(a)
 
     def gen_gilbert(size):
         """Génération de graphe avec le modèle d'Edgar Gilbert."""
@@ -136,7 +174,7 @@ class Graph:
         sum = 0
         for childs in self.adjacency_list:
             sum += len(childs)
-        return sum
+        return int(sum / 2)
 
     def stats(self):
         """Génère les statistiques du graphe"""
@@ -176,9 +214,9 @@ class Graph:
         >>> g.add((5, 0))
         >>> g.add((5, 1))
         >>> g.add((5, 2))
-        >>> g.add((6, 7)) # modifié par rapport à Wikipédia
+        >>> g.add((7, 6))
         >>> g.distance_by_bfs(False)
-        3
+        4
         """
         max = None
         for origin in range(self.len()):
@@ -210,9 +248,9 @@ class Graph:
         >>> g.add((5, 0))
         >>> g.add((5, 1))
         >>> g.add((5, 2))
-        >>> g.add((6, 7)) # modifié par rapport à Wikipédia
+        >>> g.add((7, 6))
         >>> g.bfs(5)
-        [1, 1, 1, None, 2, 0, 2, 3]
+        [1, 1, 1, 2, 2, 0, 2, 3]
         """
         dist = [None] * self.len()
         dist[origin] = 0
@@ -222,7 +260,7 @@ class Graph:
             parent = node_todo.pop(0)
             minimum = dist[parent] + 1
             for child in self.adjacency_list[parent]:
-                if not dist[child]:
+                if dist[child] == None:
                     dist[child] = minimum
                     node_todo.append(child)
 
