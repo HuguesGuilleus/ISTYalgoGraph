@@ -2,6 +2,7 @@ mod parse;
 mod printer;
 use rand;
 
+use std::collections::VecDeque;
 use std::fs::File;
 use std::time::{Duration, Instant};
 
@@ -270,19 +271,56 @@ impl Graph {
     /// en largeur. Complexité: O(S*(S+A))
     fn distance_by_bfs(&self) -> Option<usize> {
         let mut p = printer::Printer::new();
+        let mut dist = vec![0; self.len()];
+
+        let mut seen = vec![false; self.len()];
+        (0..self.len()).for_each(|n| {
+            if seen[n] {
+                return;
+            }
+            p.print("first seen", n);
+            self.bfs(n, &mut |n, d| {
+                seen[n] = true;
+                dist[n] = d;
+            });
+        });
+
+        let mut mark = vec![true; self.len()];
+        self.edge_list().for_each(|(a, b)| {
+            p.print("marking", a);
+            if dist[a] < dist[b] {
+                mark[a] = false;
+            } else {
+                mark[b] = false;
+            }
+        });
+
+        let mut max = 0;
         (0..self.len())
-            .inspect(|origin| p.print(*origin))
-            .map(|origin| self.bfs(origin))
-            .map(|v| v.into_iter())
-            .flatten()
-            .filter_map(|opt| opt)
-            .max()
+            .filter(|n| mark[*n])
+            .inspect(|origin| p.print("diameter", *origin))
+            .for_each(|origin| {
+                self.bfs(origin, &mut |_, d| {
+                    if d > max {
+                        max = d
+                    }
+                });
+            });
+
+        match max {
+            0 => None,
+            _ => Some(max),
+        }
     }
     /// Applique l’algorithme de parcours en largeur (*Breadth-first search* en anglais) sur le
-    /// sommet `origin`. Complexité: O(A+S).
-    pub fn bfs(&self, origin: usize) -> Vec<Option<usize>> {
+    /// sommet `origin`. Complexité: O(A+S). The closure `f` take the node and the min distance
+    /// from the origin to the node.
+    pub fn bfs<F>(&self, origin: usize, f: &mut F) -> Vec<Option<usize>>
+    where
+        F: FnMut(usize, usize),
+    {
         let mut dist: Vec<Option<usize>> = vec![None; self.len()];
-        let mut node_todo = std::collections::VecDeque::new();
+        let mut node_todo = VecDeque::with_capacity(self.len());
         dist[origin] = Some(0);
         node_todo.push_back(origin);
 
@@ -290,7 +328,9 @@ impl Graph {
             match node_todo.pop_front() {
                 None => break,
                 Some(parent) => {
-                    let minimum: usize = dist[parent].unwrap_or(0) + 1;
+                    let d = dist[parent].unwrap_or(0);
+                    f(parent, d);
+                    let minimum: usize = d + 1;
                     self.children(parent).for_each(|child| {
                         if dist[child].is_none() {
                             dist[child] = Some(minimum);
@@ -356,18 +396,22 @@ fn graph_bfs() {
     g.add((5, 2));
     g.add((6, 7));
 
+    let dist = vec![
+        Some(1),
+        Some(1),
+        Some(1),
+        Some(2),
+        Some(2),
+        Some(0), // 5 (origin)
+        Some(2),
+        Some(3),
+    ];
+
     assert_eq!(
-        vec!(
-            Some(1),
-            Some(1),
-            Some(1),
-            Some(2),
-            Some(2),
-            Some(0), // 5 (origin)
-            Some(2),
-            Some(3),
-        ),
-        g.bfs(5)
+        dist,
+        g.bfs(5, &mut |n, d| if dist[n] != Some(d) {
+            panic!("Node: {} and distance: {} is wrong", n, d);
+        })
     );
 
     assert_eq!(Some(4), g.distance_by_bfs());

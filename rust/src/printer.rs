@@ -6,9 +6,10 @@ impl Printer {
     pub fn new() -> Printer {
         Printer(Instant::now())
     }
-    pub fn print(&mut self, origin: usize) {
+    // Print the name of the current operation op and the origni node.
+    pub fn print(&mut self, op: &str, origin: usize) {
         if self.0.elapsed().subsec_millis() > 100 {
-            print!("origin: ");
+            print!("[ \x1b[1;32m{}\x1b[0m ] origin: ", op);
             print_3digit(origin);
             println!("\x1b[1F");
             self.0 = Instant::now();
