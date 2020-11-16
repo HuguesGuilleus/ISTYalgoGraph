@@ -15,7 +15,7 @@ class Graph:
         for i in range(size or 0):
             self.adjacency_list.append([])
 
-    def load(f, size):
+    def load(f, size=None):
         """
         Charge les arêtes à partir fichier le format est déterminé par les
         extentions qui penvent être ".txt" ou bien ".csv".
@@ -95,15 +95,6 @@ class Graph:
         . 1 . 1 . . * 2
         . . . . . . 2 *
         """
-        # * 1 . . 1 . . .
-        # . * . . . . 1 .
-        # . . * . . . . .
-        # . . 1 * . . 1 .
-        # . . . . * . . .
-        # 1 1 1 . . * . .
-        # . . . . . . * .
-        # . . . . . . 2 *
-
         s = ""
         for line, child in enumerate(self.adjacency_list):
             nodes = child.copy()
@@ -190,7 +181,7 @@ class Graph:
             "nodes": self.len(),
             "edges": edges,
             "distance": self.distance_by_bfs(),
-            "degree_average": edges / self.len(),
+            "degree_average": edges * 2 / self.len(),
             "degree_distrib": degree_distrib,
             "degree_max": degree_max,
             "duration": datetime.datetime.now() - begin,
