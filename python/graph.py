@@ -49,9 +49,9 @@ class Graph:
         for i in range(3, n):
             cpt = 0
             j = 0
-            n = self.nb_edges_tot
+
             while cpt < m and j < i:
-                r = secrets.randbelow(n)
+                r = secrets.randbelow(self.nb_edges_tot * 2)
                 if r <= self.degree[j]:
                     self.add_edge([i, j])
                     cpt += 1
