@@ -34,8 +34,8 @@ class Graph:
                 if r:
                     self.add_edge([i, j])
                 # calcule du degrer maximum et moyen
-                self.calc_max_degree()
-                self.calc_average_degree()
+        self.calc_max_degree()
+        self.calc_average_degree()
 
     def gen_barabasi_albert(self, m):
         n = self.n
