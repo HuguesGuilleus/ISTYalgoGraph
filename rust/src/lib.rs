@@ -1,10 +1,12 @@
 mod parse;
 mod printer;
-use rand;
+mod weight;
 
+use rand;
 use std::collections::VecDeque;
 use std::fs::File;
 use std::time::{Duration, Instant};
+use weight::Weight;
 
 /// Un graphe, il contient la liste où chaque sommet a la liste de tous ses sommets voisins.
 /// ```
@@ -321,6 +323,7 @@ impl Graph {
     {
         let mut dist: Vec<Option<usize>> = vec![None; self.len()];
         let mut node_todo = VecDeque::with_capacity(self.len());
+        let whitelist = vec![true; self.len()];
         dist[origin] = Some(0);
         node_todo.push_back(origin);
 
@@ -331,7 +334,7 @@ impl Graph {
                     let d = dist[parent].unwrap_or(0);
                     f(parent, d);
                     let minimum: usize = d + 1;
-                    self.children(parent).for_each(|child| {
+                    self.children(parent, &whitelist).for_each(|child| {
                         if dist[child].is_none() {
                             dist[child] = Some(minimum);
                             node_todo.push_back(child);
@@ -343,9 +346,61 @@ impl Graph {
 
         dist
     }
+    /// Recherche tous les arbres
+    fn mark_tree(&self) -> (Vec<bool>, Vec<Weight>, usize) {
+        use std::cmp::max;
+
+        let mut whitelist = vec![true; self.len()];
+        let mut weight = vec![Weight::NULL; self.len()];
+        let mut longest = 0;
+
+        for node in 0..self.len() {
+            if !whitelist[node] {
+                continue;
+            }
+
+            let mut parent = node;
+            let mut w = Weight::NULL;
+            loop {
+                // Les deux voisins si ils existent.
+                let (a, b): (Option<usize>, Option<usize>);
+                {
+                    let mut it = self.children(parent, &whitelist);
+                    a = it.next();
+                    b = it.next();
+                }
+                match (a, b) {
+                    (Some(child), None) => {
+                        whitelist[parent] = false;
+                        w += weight[parent];
+                        w.walk();
+                        parent = child;
+                    }
+                    (None, None) => {
+                        whitelist[parent] = false;
+                        longest = max(longest, w.max());
+                        break;
+                    }
+                    _ => {
+                        weight[parent] += w;
+                        longest = max(longest, w.max());
+                        break;
+                    }
+                }
+            }
+
+            println!("");
+        }
+
+        (whitelist, weight, longest)
+    }
     /// Retourne tout les enfants, si ce n'est pas possible, on retourne un itérateur vide.
     /// Complexité constante.
-    pub fn children(&self, parent: usize) -> impl Iterator<Item = usize> + '_ {
+    pub fn children<'a>(
+        &'a self,
+        parent: usize,
+        whitelist: &'a [bool],
+    ) -> impl Iterator<Item = usize> + 'a {
         if parent >= self.len() {
             &[]
         } else {
@@ -353,6 +408,7 @@ impl Graph {
         }
         .iter()
         .copied()
+        .filter(move |n| whitelist[*n])
     }
     /// Retourne un itérateur avec chaque arrêtes du graphe.
     pub fn edge_list(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
@@ -428,9 +484,43 @@ fn graph_children() {
     g.add((5, 1));
     g.add((5, 2));
     g.add((7, 6));
+    let w = vec![true; g.len()];
 
-    assert_eq!(vec![3, 5], g.children(2).collect::<Vec<usize>>());
-    assert_eq!(vec![0, 1, 2], g.children(5).collect::<Vec<usize>>());
+    assert_eq!(vec![3, 5], g.children(2, &w).collect::<Vec<usize>>());
+    assert_eq!(vec![0, 1, 2], g.children(5, &w).collect::<Vec<usize>>());
+}
+#[test]
+fn test_mark_tree() {
+    let mut g = Graph::new(Some(15));
+    g.add((0, 1));
+    g.add((0, 2));
+    g.add((1, 2));
+    g.add((0, 3));
+    g.add((1, 4));
+    g.add((4, 5));
+    g.add((4, 6));
+    g.add((6, 7));
+    g.add((4, 8));
+    g.add((8, 10));
+    g.add((8, 9));
+    g.add((9, 11));
+    g.add((12, 13));
+    // 14 est seul
+
+    let (whitelist, weight, longest) = g.mark_tree();
+    assert_eq!(
+        vec![
+            true, true, true, false, false, false, false, false, false, false, false, false, false,
+            false, false,
+        ],
+        whitelist
+    );
+
+    assert_eq!(
+        vec![Weight::new(1, 1), Weight::new(4, 5), Weight::NULL],
+        weight[..3]
+    );
+    assert_eq!(5, longest);
 }
 
 impl std::fmt::Display for Graph {
