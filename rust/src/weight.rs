@@ -3,12 +3,13 @@ use std::cmp::max;
 /// Représente la longueur de la plus grande branche et la longueur du chemin le plus profond.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Weight {
-    deep: usize,
-    branch: usize,
+    pub deep: usize,
+    pub branch: usize,
 }
 
 impl Weight {
     pub const NULL: Weight = Weight { deep: 0, branch: 0 };
+    #[cfg(test)]
     pub fn new(deep: usize, branch: usize) -> Self {
         Self {
             deep: deep,
@@ -21,6 +22,10 @@ impl Weight {
     /// Quand on avance le long d'une branche.
     pub fn walk(&mut self) {
         self.deep += 1;
+    }
+    /// Returne `true` si la branche existe.
+    pub fn nobranch(&self) -> bool {
+        self.deep == 0
     }
 }
 
@@ -57,9 +62,4 @@ fn weight_add_assign() {
         },
         w
     );
-}
-
-// `a` et `b` représentent des sous arbres à l'extérieur et path le chemin qui les relient.
-pub fn max_path(a: &Weight, b: &Weight, path: usize) -> usize {
-    max(max(a.branch, b.branch), a.deep + path + b.deep)
 }

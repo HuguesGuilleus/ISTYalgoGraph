@@ -253,7 +253,7 @@ impl Graph {
             degree_average: ((edges * 2) as f64) / (self.len() as f64),
             degree_distrib: degree_distrib,
             degree_max: degree_max,
-            distance: self.distance_by_bfs(),
+            distance: self.distance(),
             duration: before.elapsed(),
         }
     }
@@ -271,40 +271,45 @@ impl Graph {
     }
     /// Calcule la distance en prenant tous les sommets comme origine et leur applique un parcours
     /// en largeur. Complexité: O(S*(S+A))
-    fn distance_by_bfs(&self) -> Option<usize> {
+    fn distance(&self) -> Option<usize> {
         let mut p = printer::Printer::new();
-        let mut dist = vec![0; self.len()];
+        p.print("mark_tree", 0);
 
-        let mut seen = vec![false; self.len()];
-        (0..self.len()).for_each(|n| {
-            if seen[n] {
-                return;
+        let (whitelist, tree, mut max) = self.mark_tree();
+
+        // Applique BFS sur chaque composante connexe.
+        let mut dist = vec![0; self.len()];
+        for n in 0..self.len() {
+            if !whitelist[n] || dist[n] > 0 {
+                continue;
             }
             p.print("first seen", n);
-            self.bfs(n, &mut |n, d| {
-                seen[n] = true;
+            self.bfs(n, &whitelist, &mut |n, d| {
                 dist[n] = d;
             });
-        });
+        }
 
-        let mut mark = vec![true; self.len()];
+        // Séléctionne les nœuds pouvant donner le diamètre.
+        // TODO: prend en compte weight.deep.
+        let mut origins = whitelist.clone();
         self.edge_list().for_each(|(a, b)| {
-            p.print("marking", a);
-            if dist[a] < dist[b] {
-                mark[a] = false;
-            } else {
-                mark[b] = false;
+            if dist[a] < dist[b] && tree[a].nobranch() {
+                origins[a] = false;
+            } else if tree[b].nobranch() {
+                origins[b] = false;
             }
         });
 
-        let mut max = 0;
+        // Récupère les nœuds séléctionnés et mesure le diamètre.
         (0..self.len())
-            .filter(|n| mark[*n])
+            .filter(|n| origins[*n])
             .inspect(|origin| p.print("diameter", *origin))
             .for_each(|origin| {
-                self.bfs(origin, &mut |_, d| {
-                    if d > max {
-                        max = d
+                let min = tree[origin].deep;
+                self.bfs(origin, &whitelist, &mut |n, d| {
+                    let p = min + d + tree[n].deep;
+                    if p > max {
+                        max = p;
                     }
                 });
             });
@@ -314,16 +319,15 @@ impl Graph {
             _ => Some(max),
         }
     }
-    /// Applique l’algorithme de parcours en largeur (*Breadth-first search* en anglais) sur le
-    /// sommet `origin`. Complexité: O(A+S). The closure `f` take the node and the min distance
-    /// from the origin to the node.
-    pub fn bfs<F>(&self, origin: usize, f: &mut F) -> Vec<Option<usize>>
+    /// Applique l'algorithme de parcours en largeur (*Breadth-first search* en anglais) sur le
+    /// sommet `origin`. Complexité: O(A+S). La closure `f` prend le nœuds et sa distance minimal
+    /// depuis l'origine.
+    pub fn bfs<F>(&self, origin: usize, whitelist: &'_ [bool], f: &mut F) -> Vec<Option<usize>>
     where
         F: FnMut(usize, usize),
     {
         let mut dist: Vec<Option<usize>> = vec![None; self.len()];
         let mut node_todo = VecDeque::with_capacity(self.len());
-        let whitelist = vec![true; self.len()];
         dist[origin] = Some(0);
         node_todo.push_back(origin);
 
@@ -346,7 +350,10 @@ impl Graph {
 
         dist
     }
-    /// Recherche tous les arbres
+    /// Recherche tous les sous-arbres. Retourne un triplet:
+    ///   - Tableau des nœuds appartenant à des sous-arbres (plus pris en compte)
+    ///   - Tableau des poids des sous-arbres.
+    ///   - Distance maximal trouvée.
     fn mark_tree(&self) -> (Vec<bool>, Vec<Weight>, usize) {
         use std::cmp::max;
 
@@ -383,13 +390,11 @@ impl Graph {
                     }
                     _ => {
                         weight[parent] += w;
-                        longest = max(longest, w.max());
+                        longest = max(longest, w.branch);
                         break;
                     }
                 }
             }
-
-            println!("");
         }
 
         (whitelist, weight, longest)
@@ -410,7 +415,7 @@ impl Graph {
         .copied()
         .filter(move |n| whitelist[*n])
     }
-    /// Retourne un itérateur avec chaque arrêtes du graphe.
+    /// Retourne un itérateur avec chaque arrête du graphe.
     pub fn edge_list(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
         self.adjacency_list
             .iter()
@@ -465,12 +470,12 @@ fn graph_bfs() {
 
     assert_eq!(
         dist,
-        g.bfs(5, &mut |n, d| if dist[n] != Some(d) {
+        g.bfs(5, &vec![true; 8], &mut |n, d| if dist[n] != Some(d) {
             panic!("Node: {} and distance: {} is wrong", n, d);
         })
     );
 
-    assert_eq!(Some(4), g.distance_by_bfs());
+    assert_eq!(Some(4), g.distance());
 }
 #[test]
 fn graph_children() {
