@@ -1,12 +1,10 @@
 mod parse;
 mod printer;
-mod weight;
 
 use rand;
 use std::collections::VecDeque;
 use std::fs::File;
 use std::time::{Duration, Instant};
-use weight::Weight;
 
 /// Un graphe, il contient la liste où chaque sommet a la liste de tous ses sommets voisins.
 /// ```
@@ -44,7 +42,7 @@ pub struct Stats {
     /// Degré maximale
     pub degree_max: usize,
     /// Distance = plus long plus court chemin.
-    pub distance: Option<usize>,
+    pub distance: usize,
     /// Temps pour obtenir ces statistiques.
     pub duration: Duration,
 }
@@ -269,13 +267,16 @@ impl Graph {
             .sum::<usize>()
             / 2
     }
-    /// Calcule la distance en prenant tous les sommets comme origine et leur applique un parcours
-    /// en largeur. Complexité: O(S*(S+A))
-    fn distance(&self) -> Option<usize> {
+    /// Calcule la distance en précalculant la distance des sous-arbres, séléctionne les nœuds avec
+    /// un sous-arbre ou à l'extrémité du graphe, et leur applique un parcours en largeur.
+    /// Complexité: minimal O(S+A); maximal: O(S*(S+A))
+    fn distance(&self) -> usize {
+        use std::cmp::max;
+
         let mut p = printer::Printer::new();
         p.print("mark_tree", 0);
 
-        let (whitelist, tree, mut max) = self.mark_tree();
+        let (whitelist, subtree, mut longest) = self.mark_tree();
 
         // Applique BFS sur chaque composante connexe.
         let mut dist = vec![0; self.len()];
@@ -290,34 +291,32 @@ impl Graph {
         }
 
         // Séléctionne les nœuds pouvant donner le diamètre.
-        // TODO: prend en compte weight.deep.
+        p.print("selecting", 0);
         let mut origins = whitelist.clone();
-        self.edge_list().for_each(|(a, b)| {
-            if dist[a] < dist[b] && tree[a].nobranch() {
-                origins[a] = false;
-            } else if tree[b].nobranch() {
-                origins[b] = false;
+        for n in (0..self.len()).filter(|n| whitelist[*n]) {
+            let dist_n = dist[n];
+            let have_not_subtree = !subtree[n] == 0;
+            for c in self.children(n, &whitelist) {
+                if dist_n < dist[c] && have_not_subtree {
+                    origins[n] = false;
+                } else if subtree[c] == 0 {
+                    origins[c] = false;
+                }
             }
-        });
+        }
 
         // Récupère les nœuds séléctionnés et mesure le diamètre.
         (0..self.len())
             .filter(|n| origins[*n])
             .inspect(|origin| p.print("diameter", *origin))
             .for_each(|origin| {
-                let min = tree[origin].deep;
+                let min = subtree[origin];
                 self.bfs(origin, &whitelist, &mut |n, d| {
-                    let p = min + d + tree[n].deep;
-                    if p > max {
-                        max = p;
-                    }
+                    longest = max(longest, min + d + subtree[n]);
                 });
             });
 
-        match max {
-            0 => None,
-            _ => Some(max),
-        }
+        longest
     }
     /// Applique l'algorithme de parcours en largeur (*Breadth-first search* en anglais) sur le
     /// sommet `origin`. Complexité: O(A+S). La closure `f` prend le nœuds et sa distance minimal
@@ -354,11 +353,11 @@ impl Graph {
     ///   - Tableau des nœuds appartenant à des sous-arbres (plus pris en compte)
     ///   - Tableau des poids des sous-arbres.
     ///   - Distance maximal trouvée.
-    fn mark_tree(&self) -> (Vec<bool>, Vec<Weight>, usize) {
+    fn mark_tree(&self) -> (Vec<bool>, Vec<usize>, usize) {
         use std::cmp::max;
 
         let mut whitelist = vec![true; self.len()]; // Les nœuds appartenant à des sous-arbres.
-        let mut weight = vec![Weight::NULL; self.len()];
+        let mut weight = vec![0; self.len()]; // Plus longue branche dans le sous-arbre.
         let mut longest = 0; // La plus longue branche.
 
         for node in 0..self.len() {
@@ -379,7 +378,7 @@ impl Graph {
                 match (a, b) {
                     (Some(child), None) => {
                         whitelist[parent] = false;
-                        let parent_deep = weight[parent].deep;
+                        let parent_deep = weight[parent];
                         longest = max(longest, deep + parent_deep);
                         deep = 1 + max(deep, parent_deep);
                         parent = child;
@@ -390,11 +389,9 @@ impl Graph {
                         break;
                     }
                     _ => {
-                        let parent_deep = weight[parent].deep;
+                        let parent_deep = weight[parent];
                         longest = max(longest, deep + parent_deep);
-                        weight[parent] = Weight {
-                            deep: max(deep, weight[parent].deep),
-                        };
+                        weight[parent] = max(deep, parent_deep);
                         break;
                     }
                 }
@@ -447,9 +444,8 @@ fn graph_push() {
     assert_eq!(vec![0], g.adjacency_list[1]);
 }
 #[test]
-fn graph_bfs() {
+fn graph_distance() {
     // Source: https://fr.wikipedia.org/wiki/Matrice_d%27adjacence#Exemples mais non orienté
-
     let mut g = Graph::new(Some(8));
     g.add((0, 1));
     g.add((0, 4));
@@ -479,7 +475,7 @@ fn graph_bfs() {
         })
     );
 
-    assert_eq!(Some(4), g.distance());
+    assert_eq!(4, g.distance());
 }
 #[test]
 fn graph_children() {
@@ -524,10 +520,9 @@ fn test_mark_tree() {
         ],
         whitelist
     );
-    assert_eq!(
-        vec![Weight::new(1, 1), Weight::new(4, 5), Weight::NULL],
-        weight[..3]
-    );
+    assert_eq!(vec![1, 4, 0], weight[..3]);
+    // vec![Weight::new(1, 1), Weight::new(4, 5), Weight::NULL],
+    // weight[..3]
     assert_eq!(5, longest);
 }
 
