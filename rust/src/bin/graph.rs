@@ -1,7 +1,7 @@
 fn main() -> Result<(), String> {
     // Nombre de nœud au maximum dans le graphe.
-    let size: Option<usize> = Some(20_000);
-    // let size: Option<usize> = None;
+    // let size: Option<usize> = Some(20_000);
+    let size: Option<usize> = None;
 
     // Fichier à charger.
     // let f = "../db/FacebookSites.csv";

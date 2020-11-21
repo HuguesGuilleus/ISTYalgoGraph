@@ -319,14 +319,14 @@ impl Graph {
         longest
     }
     /// Applique l'algorithme de parcours en largeur (*Breadth-first search* en anglais) sur le
-    /// sommet `origin`. Complexité: O(A+S). La closure `f` prend le nœuds et sa distance minimal
-    /// depuis l'origine.
+    /// sommet `origin`. Complexité: O(A+S). La closure `f` prend le nœud et sa distance minimal
+    /// depuis l'origine. whitelist les sommets ignorées.
     pub fn bfs<F>(&self, origin: usize, whitelist: &'_ [bool], f: &mut F) -> Vec<Option<usize>>
     where
         F: FnMut(usize, usize),
     {
         let mut dist: Vec<Option<usize>> = vec![None; self.len()];
-        let mut node_todo = VecDeque::with_capacity(self.len());
+        let mut node_todo = VecDeque::with_capacity(self.len() / 2);
         dist[origin] = Some(0);
         node_todo.push_back(origin);
 
