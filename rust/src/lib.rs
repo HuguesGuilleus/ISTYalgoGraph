@@ -357,9 +357,9 @@ impl Graph {
     fn mark_tree(&self) -> (Vec<bool>, Vec<Weight>, usize) {
         use std::cmp::max;
 
-        let mut whitelist = vec![true; self.len()];
+        let mut whitelist = vec![true; self.len()]; // Les nœuds appartenant à des sous-arbres.
         let mut weight = vec![Weight::NULL; self.len()];
-        let mut longest = 0;
+        let mut longest = 0; // La plus longue branche.
 
         for node in 0..self.len() {
             if !whitelist[node] {
@@ -367,7 +367,7 @@ impl Graph {
             }
 
             let mut parent = node;
-            let mut w = Weight::NULL;
+            let mut deep = 0;
             loop {
                 // Les deux voisins si ils existent.
                 let (a, b): (Option<usize>, Option<usize>);
@@ -379,18 +379,22 @@ impl Graph {
                 match (a, b) {
                     (Some(child), None) => {
                         whitelist[parent] = false;
-                        w += weight[parent];
-                        w.walk();
+                        let parent_deep = weight[parent].deep;
+                        longest = max(longest, deep + parent_deep);
+                        deep = 1 + max(deep, parent_deep);
                         parent = child;
                     }
                     (None, None) => {
                         whitelist[parent] = false;
-                        longest = max(longest, w.max());
+                        longest = max(longest, deep);
                         break;
                     }
                     _ => {
-                        weight[parent] += w;
-                        longest = max(longest, w.branch);
+                        let parent_deep = weight[parent].deep;
+                        longest = max(longest, deep + parent_deep);
+                        weight[parent] = Weight {
+                            deep: max(deep, weight[parent].deep),
+                        };
                         break;
                     }
                 }
@@ -520,7 +524,6 @@ fn test_mark_tree() {
         ],
         whitelist
     );
-
     assert_eq!(
         vec![Weight::new(1, 1), Weight::new(4, 5), Weight::NULL],
         weight[..3]
