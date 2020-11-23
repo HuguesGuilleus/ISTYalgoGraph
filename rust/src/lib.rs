@@ -276,40 +276,9 @@ impl Graph {
         let mut p = printer::Printer::new();
 
         p.print("mark_tree", 0);
-        let (whitelist, subtree, longest) = self.mark_tree();
+        let (whitelist, subtree, mut longest) = self.mark_tree();
 
-        // Applique BFS sur chaque composante connexe.
-        let mut dist = vec![0; self.len()];
-        for n in 0..self.len() {
-            if !whitelist[n] || dist[n] > 0 {
-                continue;
-            }
-            p.print("first seen", n);
-            self.bfs(&vec![n], &whitelist, &mut |n, d| {
-                dist[n] = d;
-            });
-        }
-
-        // Séléctionne les nœuds pouvant donner le diamètre.
-        p.print("selecting", 0);
-        let mut origins = whitelist.clone();
-        for n in (0..self.len()).filter(|n| whitelist[*n]) {
-            let dist_n = dist[n];
-            let have_not_subtree = subtree[n] == 0;
-            for c in self.children(n, &whitelist) {
-                if dist_n < dist[c] {
-                    if have_not_subtree {
-                        origins[n] = false;
-                    }
-                } else if subtree[c] == 0 {
-                    origins[c] = false;
-                }
-            }
-        }
-
-        // Classe les nœuds séléctionnés
-        let selected: Vec<usize> = (0..self.len()).filter(|n| origins[*n]).collect();
-
+        // Retourne le diamètre minial ateignable.
         let diameter_min = |origins: &[usize]| -> usize {
             let min_origin = origins.iter().map(|o| subtree[*o]).max().unwrap_or(0);
             let mut origins_max = 0;
@@ -318,22 +287,42 @@ impl Graph {
             });
             origins_max
         };
-        let mut selected: &[usize] = &selected;
-        while selected.len() > 1 {
-            p.print("dichotomie over selection", selected.len());
-            let part_a = &selected[..selected.len() / 2];
-            let part_b = &selected[selected.len() / 2..];
-            let a = diameter_min(part_a);
-            let b = diameter_min(part_b);
 
-            if a > b {
-                selected = part_a;
-            } else {
-                selected = part_b;
+        // Applique BFS pour détecter chaque composante connexe.
+        let mut dist = vec![0; self.len()];
+        let mut component: Vec<usize> = Vec::with_capacity(self.len());
+        for n in 0..self.len() {
+            if !whitelist[n] || dist[n] > 0 {
+                continue;
             }
+
+            p.print("connectivity", n);
+            component.clear();
+            self.bfs(&vec![n], &whitelist, &mut |n, d| {
+                dist[n] = d;
+                component.push(n);
+            });
+
+            // optimiser /// diamètre max thérique ...
+
+            let mut selected: &[usize] = &component;
+            while selected.len() > 1 {
+                p.print("dichotomie", selected.len());
+                let part_a = &selected[..selected.len() / 2];
+                let part_b = &selected[selected.len() / 2..];
+                let a = diameter_min(part_a);
+                let b = diameter_min(part_b);
+
+                if a > b {
+                    selected = part_a;
+                } else {
+                    selected = part_b;
+                }
+            }
+            longest = max(longest, diameter_min(selected));
         }
 
-        max(longest, diameter_min(selected))
+        longest
     }
     /// Applique l'algorithme de parcours en largeur (*Breadth-first search* en anglais) sur le
     /// sommet `origin`. Complexité: O(A+S). La closure `f` prend le nœud et sa distance minimal
