@@ -276,7 +276,7 @@ impl Graph {
         let mut p = printer::Printer::new();
 
         p.print("mark_tree", 0);
-        let (whitelist, subtree, mut longest) = self.mark_tree();
+        let (whitelist, subtree, longest) = self.mark_tree();
 
         // Applique BFS sur chaque composante connexe.
         let mut dist = vec![0; self.len()];
@@ -285,7 +285,7 @@ impl Graph {
                 continue;
             }
             p.print("first seen", n);
-            self.bfs(n, &whitelist, &mut |n, d| {
+            self.bfs(&vec![n], &whitelist, &mut |n, d| {
                 dist[n] = d;
             });
         }
@@ -310,30 +310,52 @@ impl Graph {
         // Classe les nœuds séléctionnés
         let selected: Vec<usize> = (0..self.len()).filter(|n| origins[*n]).collect();
 
-        // Récupère les nœuds séléctionnés et mesure le diamètre.
-        selected
-            .into_iter()
-            .inspect(|origin| p.print("diameter", *origin))
-            .for_each(|origin| {
-                let min = subtree[origin];
-                self.bfs(origin, &whitelist, &mut |n, d| {
-                    longest = max(longest, min + d + subtree[n]);
-                });
+        let diameter_min = |origins: &[usize]| -> usize {
+            let min_origin = origins.iter().map(|o| subtree[*o]).max().unwrap_or(0);
+            let mut origins_max = 0;
+            self.bfs(origins, &whitelist, &mut |n, d| {
+                origins_max = max(origins_max, min_origin + d + subtree[n]);
             });
+            origins_max
+        };
+        let mut selected: &[usize] = &selected;
+        while selected.len() > 1 {
+            p.print("dichotomie over selection", selected.len());
+            let part_a = &selected[..selected.len() / 2];
+            let part_b = &selected[selected.len() / 2..];
+            let a = diameter_min(part_a);
+            let b = diameter_min(part_b);
 
-        longest
+            if a > b {
+                selected = part_a;
+            } else {
+                selected = part_b;
+            }
+        }
+
+        max(longest, diameter_min(selected))
     }
     /// Applique l'algorithme de parcours en largeur (*Breadth-first search* en anglais) sur le
     /// sommet `origin`. Complexité: O(A+S). La closure `f` prend le nœud et sa distance minimal
     /// depuis l'origine. whitelist les sommets ignorées.
-    pub fn bfs<F>(&self, origin: usize, whitelist: &'_ [bool], f: &mut F) -> Vec<Option<usize>>
+    pub fn bfs<F>(
+        &self,
+        origins: &'_ [usize],
+        whitelist: &'_ [bool],
+        f: &mut F,
+    ) -> Vec<Option<usize>>
     where
         F: FnMut(usize, usize),
     {
         let mut dist: Vec<Option<usize>> = vec![None; self.len()];
         let mut node_todo = VecDeque::with_capacity(self.len() / 2);
-        dist[origin] = Some(0);
-        node_todo.push_back(origin);
+        // dist[origin] = Some(0);
+        // node_todo.push_back(origin);
+
+        for o in origins {
+            dist[*o] = Some(0);
+            node_todo.push_back(*o);
+        }
 
         loop {
             match node_todo.pop_front() {
@@ -475,9 +497,13 @@ fn graph_distance() {
 
     assert_eq!(
         dist,
-        g.bfs(5, &vec![true; 8], &mut |n, d| if dist[n] != Some(d) {
-            panic!("Node: {} and distance: {} is wrong", n, d);
-        })
+        g.bfs(
+            &vec![5],
+            &vec![true; 8],
+            &mut |n, d| if dist[n] != Some(d) {
+                panic!("Node: {} and distance: {} is wrong", n, d);
+            }
+        )
     );
 
     assert_eq!(4, g.distance());
