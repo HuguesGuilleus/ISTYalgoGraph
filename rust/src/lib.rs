@@ -274,8 +274,8 @@ impl Graph {
         use std::cmp::max;
 
         let mut p = printer::Printer::new();
-        p.print("mark_tree", 0);
 
+        p.print("mark_tree", 0);
         let (whitelist, subtree, mut longest) = self.mark_tree();
 
         // Applique BFS sur chaque composante connexe.
@@ -295,19 +295,24 @@ impl Graph {
         let mut origins = whitelist.clone();
         for n in (0..self.len()).filter(|n| whitelist[*n]) {
             let dist_n = dist[n];
-            let have_not_subtree = !subtree[n] == 0;
+            let have_not_subtree = subtree[n] == 0;
             for c in self.children(n, &whitelist) {
-                if dist_n < dist[c] && have_not_subtree {
-                    origins[n] = false;
+                if dist_n < dist[c] {
+                    if have_not_subtree {
+                        origins[n] = false;
+                    }
                 } else if subtree[c] == 0 {
                     origins[c] = false;
                 }
             }
         }
 
+        // Classe les nœuds séléctionnés
+        let selected: Vec<usize> = (0..self.len()).filter(|n| origins[*n]).collect();
+
         // Récupère les nœuds séléctionnés et mesure le diamètre.
-        (0..self.len())
-            .filter(|n| origins[*n])
+        selected
+            .into_iter()
             .inspect(|origin| p.print("diameter", *origin))
             .for_each(|origin| {
                 let min = subtree[origin];

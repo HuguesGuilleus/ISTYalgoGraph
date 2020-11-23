@@ -11,6 +11,7 @@ fn main() -> Result<(), String> {
     // let f = "../db/Wikipedia1.csv";
     // let f = "../db/Wikipedia2.csv";
 
+    println!("graph: {:#?}", f);
     let mut s = graph::Graph::load(f, size)?.stats();
     s.degree_distrib = vec![];
     println!("{:#?}", s);
