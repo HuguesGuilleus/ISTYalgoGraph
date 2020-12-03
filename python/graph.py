@@ -1,6 +1,7 @@
 import secrets
 import matplotlib.pyplot as plt
 
+
 class Graph:
     def __init__(self, size):
         self.n = size
@@ -33,31 +34,23 @@ class Graph:
                 r = secrets.randbits(1)
                 if r:
                     self.add_edge([i, j])
-                # calcule du degrer maximum et moyen
-                self.calc_max_degree()
-                self.calc_average_degree()
 
     def gen_barabasi_albert(self, m):
-        n = self.n
-
         # initialisation de la clique
         self.add_edge([0, 1])
         self.add_edge([0, 2])
         self.add_edge([1, 2])
-
         self.nb_edges_tot = 3
-        for i in range(3, n):
+
+        for i in range(3, self.n):
             cpt = 0
             j = 0
             while cpt < m and j < i:
-                r = secrets.randbelow(self.nb_edges_tot)
+                r = secrets.randbelow(self.nb_edges_tot * 2)
                 if r <= self.degree[j]:
                     self.add_edge([i, j])
                     cpt += 1
                 j += 1
-        #calcule du degrer maximum et moyen
-        self.calc_max_degree()
-        self.calc_average_degree()
 
     def calc_max_degree(self):
         self.max_degree = max(self.degree)
@@ -65,28 +58,23 @@ class Graph:
     def calc_average_degree(self):
         self.average_degree = sum(self.degree) / self.n
 
-    #***************************************************
-    #pas demander juste pour visuliser pour nous
-    def curve_vertices_degree(self):
-        x = []
-        for i in range (0, self.n):
-            x.append(i)
-        y = self.degree
-
-        plt.plot(x,y)
-        plt.show()
-    # ***************************************************
-
     def curve_distrib_degree(self):
         x = []
-        y = []
-        for i in range (0, self.max_degree+1):
+        y = [0] * (self.max_degree + 1)
+        for i in range(0, self.max_degree + 1):
             x.append(i)
-            print(i)
-            y.append(self.degree.count(i))
-            print(self.degree.count(i))
-            print()
-
-
-        plt.bar(x,y)
+        for i in range(0, self.n):
+            y[self.degree[i]] += 1
+        plt.bar(x, y)
         plt.show()
+
+    def stat(self):
+        print("1) le nombre de sommets est : " + str(self.n))
+        print("2) le nombre d'arêtes est : " + str(self.nb_edges_tot))
+        self.calc_max_degree()
+        print("3) le degrée maximal est : " + str(self.max_degree))
+        self.calc_average_degree()
+        print("4) le degrée moyen est : " + str(self.average_degree))
+        print("6) le diamètre du graph est : " + "???")
+        print("5) la courbe de distribution des degrées s'ouvre dans une fenêtre")
+        self.curve_distrib_degree()
