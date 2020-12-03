@@ -361,14 +361,18 @@ impl Graph {
         let mut seen = vec![false; self.len()];
         seen[origin] = true;
         let mut node_todo = Stack::with_capacity(self.len() / 4);
-        node_todo.push_future(origin);
+        node_todo.push_future((origin, self.len()));
         loop {
             let next = node_todo.pop();
             match next {
                 StackNext::None => break,
-                StackNext::Some(parent) => {
+                StackNext::Some((parent, diff)) => {
                     let d = dist[parent].unwrap_or(0);
                     f(parent, d);
+                    if diff == 0 {
+                        continue;
+                    }
+                    let diff = diff - 1;
                     let minimum: usize = d + 1;
                     self.children(parent, &whitelist).for_each(|child| {
                         if seen[child] {
@@ -377,20 +381,30 @@ impl Graph {
                         seen[child] = true;
                         match dist[child] {
                             Some(d) if d == minimum => node_todo.push_reeval(child),
-                            _ => {
-                                node_todo.push_future(child);
+                            Some(_) => {
+                                node_todo.push_future((child, diff));
+                                dist[child] = Some(minimum);
+                            }
+                            None => {
+                                node_todo.push_future((child, self.len()));
                                 dist[child] = Some(minimum);
                             }
                         }
                     })
                 }
                 StackNext::Reeval(n) => {
-                    let minimum: Option<usize> = Some(dist[n].unwrap_or(0) + 1);
+                    let minimum: usize = dist[n].unwrap_or(0) + 1;
+                    // let minimum: Option<usize> = Some(dist[n].unwrap_or(0) + 1);
                     for child in self.children(n, &whitelist) {
-                        if !seen[child] && dist[child] != minimum {
-                            dist[child] = minimum;
+                        if seen[child] {
+                            continue;
+                        }
+                        let d = dist[child].unwrap();
+                        if d != minimum {
+                            // dist[child] = minimum;
+                            dist[child] = Some(minimum);
                             seen[child] = true;
-                            node_todo.push_future(child)
+                            node_todo.push_future((child, minimum - d))
                         }
                     }
                 }
