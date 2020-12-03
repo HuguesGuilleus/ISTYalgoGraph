@@ -1,7 +1,9 @@
 mod parse;
 mod printer;
+mod stack;
 
 use rand;
+use stack::{Stack, StackNext};
 use std::collections::VecDeque;
 use std::fs::File;
 use std::time::{Duration, Instant};
@@ -271,54 +273,50 @@ impl Graph {
     /// un sous-arbre ou à l'extrémité du graphe, et leur applique un parcours en largeur.
     /// Complexité: minimal O(S+A); maximal: O(S*(S+A))
     fn distance(&self) -> usize {
-        use std::cmp::max;
+        use std::cmp::{max, Ordering};
 
         let mut p = printer::Printer::new();
-
-        p.print("mark_tree", 0);
-        let (whitelist, subtree, mut longest) = self.mark_tree();
+        let whitelist = vec![true; self.len()];
 
         // Applique BFS sur chaque composante connexe.
-        let mut dist = vec![0; self.len()];
+        let mut dist: Vec<Option<usize>> = vec![None; self.len()];
+        let mut nodes = Vec::with_capacity(self.len());
         for n in 0..self.len() {
-            if !whitelist[n] || dist[n] > 0 {
+            if dist[n].is_some() {
                 continue;
             }
             p.print("first seen", n);
             self.bfs(n, &whitelist, &mut |n, d| {
-                dist[n] = d;
+                nodes.push(n);
+                dist[n] = Some(d);
             });
         }
 
-        // Séléctionne les nœuds pouvant donner le diamètre.
-        p.print("selecting", 0);
-        let mut origins = whitelist.clone();
-        for n in (0..self.len()).filter(|n| whitelist[*n]) {
-            let dist_n = dist[n];
-            let have_not_subtree = subtree[n] == 0;
-            for c in self.children(n, &whitelist) {
-                if dist_n < dist[c] {
-                    if have_not_subtree {
-                        origins[n] = false;
-                    }
-                } else if subtree[c] == 0 {
-                    origins[c] = false;
-                }
-            }
-        }
+        p.print("select", 0);
+        let mut selected = vec![true; self.len()];
+        self.edge_list()
+            .for_each(|(a, b)| match dist[a].cmp(&dist[b]) {
+                Ordering::Less => selected[a] = false,
+                Ordering::Greater => selected[b] = false,
+                Ordering::Equal => {}
+            });
 
-        // Classe les nœuds séléctionnés
-        let selected: Vec<usize> = (0..self.len()).filter(|n| origins[*n]).collect();
-
-        // Récupère les nœuds séléctionnés et mesure le diamètre.
-        selected
+        let mut processed = 0;
+        let mut longest = 0;
+        let mut dist_mut: Vec<Option<usize>> = vec![None; self.len()];
+        nodes
             .into_iter()
-            .inspect(|origin| p.print("diameter", *origin))
+            .filter(|origin| selected[*origin])
+            .inspect(|_| {
+                processed += 1;
+                p.print("diameter", processed)
+            })
             .for_each(|origin| {
-                let min = subtree[origin];
-                self.bfs(origin, &whitelist, &mut |n, d| {
-                    longest = max(longest, min + d + subtree[n]);
+                self.re_bfs(origin, &mut dist_mut, &whitelist, &mut |n, d| {
+                    // println!("n:{}; d:{}", n, d);
+                    longest = max(longest, d);
                 });
+                // println!("origin: {} {:?}", origin, dist_mut);
             });
 
         longest
@@ -353,6 +351,51 @@ impl Graph {
         }
 
         dist
+    }
+    /// Re-parcous le graphe à partir d'un autre sommet de départ.
+    fn re_bfs<F>(&self, origin: usize, dist: &mut [Option<usize>], whitelist: &'_ [bool], f: &mut F)
+    where
+        F: FnMut(usize, usize),
+    {
+        dist[origin] = Some(0);
+        let mut seen = vec![false; self.len()];
+        seen[origin] = true;
+        let mut node_todo = Stack::with_capacity(self.len() / 4);
+        node_todo.push_future(origin);
+        loop {
+            let next = node_todo.pop();
+            match next {
+                StackNext::None => break,
+                StackNext::Some(parent) => {
+                    let d = dist[parent].unwrap_or(0);
+                    f(parent, d);
+                    let minimum: usize = d + 1;
+                    self.children(parent, &whitelist).for_each(|child| {
+                        if seen[child] {
+                            return;
+                        };
+                        seen[child] = true;
+                        match dist[child] {
+                            Some(d) if d == minimum => node_todo.push_reeval(child),
+                            _ => {
+                                node_todo.push_future(child);
+                                dist[child] = Some(minimum);
+                            }
+                        }
+                    })
+                }
+                StackNext::Reeval(n) => {
+                    let minimum: Option<usize> = Some(dist[n].unwrap_or(0) + 1);
+                    for child in self.children(n, &whitelist) {
+                        if !seen[child] && dist[child] != minimum {
+                            dist[child] = minimum;
+                            seen[child] = true;
+                            node_todo.push_future(child)
+                        }
+                    }
+                }
+            }
+        }
     }
     /// Recherche tous les sous-arbres. Retourne un triplet:
     ///   - Tableau des nœuds appartenant à des sous-arbres (plus pris en compte)
@@ -462,7 +505,7 @@ fn graph_distance() {
     g.add((5, 2));
     g.add((6, 7));
 
-    let dist = vec![
+    let dist5 = vec![
         Some(1),
         Some(1),
         Some(1),
@@ -472,13 +515,25 @@ fn graph_distance() {
         Some(2),
         Some(3),
     ];
+    assert_eq!(dist5, g.bfs(5, &vec![true; 8], &mut |_, _| {}));
 
-    assert_eq!(
-        dist,
-        g.bfs(5, &vec![true; 8], &mut |n, d| if dist[n] != Some(d) {
-            panic!("Node: {} and distance: {} is wrong", n, d);
-        })
-    );
+    // Distance calculée à partir du sommet 1.
+    let mut dist1 = vec![
+        Some(1),
+        Some(0), // 1 origin
+        Some(2),
+        Some(2),
+        Some(2),
+        Some(1),
+        Some(1),
+        Some(2),
+    ];
+    let dist3 = vec![3, 2, 1, 0, 4, 2, 1, 2];
+    g.re_bfs(3, &mut dist1, &vec![true; 8], &mut |n, d| {
+        if dist3[n] != d {
+            panic!("Wrong distance {} ({}) for node {}", d, dist3[n], n);
+        }
+    });
 
     assert_eq!(4, g.distance());
 }
