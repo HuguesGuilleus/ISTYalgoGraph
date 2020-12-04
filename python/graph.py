@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import parse
 import secrets
+import sys
 
 
 class Graph:
@@ -99,26 +100,19 @@ class Graph:
                     cpt += 1
                 j += 1
 
-    def load(f, size=None):
+    def load(self, f):
         """
         Charge les aretes a partir fichier le format est determine par les
         extentions qui penvent etre ".txt" ou bien ".csv".
         >>> lines = ["id_1,id_2\\n", "0,1\\n", "0,2\\n", "1,2\\n"]
         >>> with open("x.csv", "w") as f: f.writelines(lines) ;
-        >>> g = Graph.load("x.csv")
+        >>> g = Graph(0); g.load("x.csv")
         >>> g
         * 1 1
         1 * 1
         1 1 *
         >>> import os; os.remove("x.csv")
         """
-        if size == None:
-            g = Graph(0)
-            save = g.grow_with_edge
-        else:
-            g = Graph(size)
-            save = g.add_edge
-
         if f.endswith(".csv"):
             loader = parse.load_csv
         elif f.endswith(".txt"):
@@ -127,9 +121,7 @@ class Graph:
             raise Exception("Unknown extention to find a loader")
 
         with open(f, "r") as f:
-            loader(f, save)
-
-        return g
+            loader(f, self.grow_with_edge)
 
     def save(self, out):
         """
@@ -220,3 +212,40 @@ class Graph:
                     node_todo.append(child)
 
         return dist
+
+
+if __name__ == "__main__":
+
+    def print_help():
+        print("Usage de graph.py:")
+        print()
+        print("Charge ou genère le graphe avec:")
+        print("    gg|gen_gilbert         size")
+        print("    gb|gen_barabasi_albert size")
+        print("    l|load                 file.csv|file.txt")
+        print()
+        print("Puis Indiquez un fichier si vous voulez exporter le graphe,")
+        print("sinon ses statistiques seront affichées.")
+
+    loader = sys.argv[1] if len(sys.argv) > 2 else ""
+    if "-h" in sys.argv or "--help" in sys.argv or loader in ["help", ""]:
+        print_help()
+        quit()
+    elif loader in ["gg", "gen_gilbert"]:
+        g = Graph(int(sys.argv[2]))
+        g.gen_gilbert()
+    elif loader in ["gb", "gen_barabasi_albert"]:
+        g = Graph(int(sys.argv[2]))
+        g.gen_gilbert()
+    elif loader == "load":
+        g = Graph(0)
+        g.load(sys.argv[2])
+    else:
+        print_help()
+        print()
+        sys.exit(f"Unknwon loader: '{loader}'")
+
+    if len(sys.argv) > 3:
+        g.save(sys.argv[3])
+    else:
+        g.stat()
