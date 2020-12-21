@@ -18,12 +18,12 @@ class Graph:
     1 1 1 . . * . .
     . 1 . 1 . . * 2
     . . . . . . 2 *
-    >>> g.bfs(5)
+    >>> g.bfs(5, [True] * g.n)
     [1, 1, 1, 2, 2, 0, 2, 3]
-    >>> g.calc_distance(False)
-    4
     >>> list(g.children(0, [False, False] + [True] * 6))
     [4, 5]
+    >>> g.calc_distance(False)
+    4
     """
 
     def __init__(self, size):
@@ -179,35 +179,72 @@ class Graph:
         self.curve_distrib_degree()
 
     def calc_distance(self, printer=True):
-        """Calcule le diametre en cherchant le plus long court chemin en
-        partant de chaque sommet. Complexite: O(S*(A+S)). L'argument `printer`
-        permet de desactiver l'affichage du sommet en cours de traitement."""
-        max = None
-        for origin in range(self.n):
-            if printer:
-                print(f"origin: {origin:,}", end="\x1b[1G")
-            for long in self.bfs(origin):
-                if max == None:
-                    max = long
-                elif long and long > max:
-                    max = long
+        """
+        Calcule la distance en précalculant la distance des sous-arbres,
+        séléctionne les nœuds avec un sous-arbre ou à l'extrémité du graphe,
+        et leur applique un parcours en largeur. Complexité maximale O(S*(S+A)),
+        si le graphe est une forêt la complexité devient: O(S+A).
+        """
 
+        def printing(ms):
+            if printer:
+                print(ms, end="\x1b[1G")
+
+        # Déctecte et calcule le diamètre pour les sous-arbre.
+        printing(f"mark_tree")
+        (whitelist, subtree, longest) = self.mark_tree()
+
+        # Applique BFS sur chaque composante connexe.
+        dist = [0] * self.n
+        for n in range(self.n):
+            if not whitelist[n] or dist[n] != 0:
+                continue
+            printing(f"first seen: {n}")
+            for n, d in enumerate(self.bfs(n, whitelist)):
+                if d != None:
+                    dist[n] = d
+
+        # Séléctionne les nœuds pouvant donner le diamètre.
+        printing(f"selecting")
+        origins = list(whitelist)
+        for n in filter(lambda n: whitelist[n], range(self.n)):
+            distN = dist[n]
+            haveNotSubtree = subtree[n] == 0
+            for c in self.children(n, whitelist):
+                if distN < dist[c]:
+                    if haveNotSubtree:
+                        origins[n] = False
+                elif subtree[c] == 0:
+                    origins[c] = False
+
+        # Récupère les nœuds séléctionnés et mesure le diamètre
+        for origin, selected in enumerate(origins):
+            if selected:
+                printing(f"diameter: {n}")
+                for n, d in enumerate(self.bfs(origin, whitelist)):
+                    if d != None:
+                        longest = max(longest, subtree[origin] + d + subtree[n])
+
+        # Efface la ligne
         if printer:
             print("\x1b[K", end="")
 
-        return max
+        return longest
 
-    def bfs(self, origin):
+    def bfs(self, origin, whitelist):
         """Applique l'algorithme de parcours en largeur (*Breadth-first search*
-        en anglais) sur le sommet `origin`. Complexite: O(A+S)."""
+        en anglais) sur le sommet `origin`. Complexite: O(A+S). La closure `f`
+        prend le nœuds et sa distance minimal depuis l'origine. whitelist est
+        un tableau permettant d'ignorées certains sommets."""
         dist = [None] * self.n
         dist[origin] = 0
         node_todo = [origin]
 
         while len(node_todo):
             parent = node_todo.pop(0)
-            minimum = dist[parent] + 1
-            for child in self.adjacency_list[parent]:
+            d = dist[parent]
+            minimum = d + 1
+            for child in self.children(parent, whitelist):
                 if dist[child] == None:
                     dist[child] = minimum
                     node_todo.append(child)
