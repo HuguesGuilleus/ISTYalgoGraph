@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import parse
 import secrets
+import datetime
 import sys
 
 
@@ -154,29 +155,38 @@ class Graph:
                     if p < c:
                         saver(f, (p, c))
 
-    def curve_distrib_degree(self):
-        """Affiche une fenetre contenant le graphique la frequence
-        d'appartition des degrees"""
-        x = []
-        y = [0] * (self.max_degree + 1)
-        for i in range(0, self.max_degree + 1):
-            x.append(i)
-        for i in range(0, self.n):
-            y[self.degree[i]] += 1
-        plt.bar(x, y)
+    def print_stat(self):
+        "Affiche les statistiques du graphes."
+        stats = self.calc_stats()
+        print(f"1) Le nombre de sommets est : {stats['nodes']}")
+        print(f"2) Le nombre d'arêtes est : {stats['edges']}")
+        print(f"3) Le degrée maximal est : {stats['degree_max']}")
+        print(f"4) Le degrée moyen est : {stats['degree_average']}")
+        print(f"5) La courbe de distribution des degrées s'ouvre dans une fenêtre")
+        print(f"6) Le diamètre du graph est : {stats['distance']}")
+        print(f"+) La durée de calcule est : {stats['duration']}")
+        plt.bar(list(range(len(stats["degree_distrib"]))), stats["degree_distrib"])
         plt.show()
 
-    def stat(self):
-        """Calcule et affiche les statistiques du graphes."""
-        print("1) le nombre de sommets est : " + str(self.n))
-        print("2) le nombre d'arêtes est : " + str(self.nb_edges_tot))
-        self.max_degree = max(self.degree)
-        print("3) le degrée maximal est : " + str(self.max_degree))
-        self.average_degree = sum(self.degree) / self.n
-        print("4) le degrée moyen est : " + str(self.average_degree))
-        print("6) le diamètre du graph est : " + str(self.calc_distance()))
-        print("5) la courbe de distribution des degrées s'ouvre dans une fenêtre")
-        self.curve_distrib_degree()
+    def calc_stats(self):
+        "Calcule les statistiques su graphe."
+        begin = datetime.datetime.now()
+        degree_max = max(self.degree)
+        degree_distrib = [0] * (degree_max + 1)
+        for d in self.degree:
+            degree_distrib[d] += 1
+
+        self.stats = {
+            "nodes": self.n,
+            "edges": self.nb_edges_tot,
+            "degree_max": degree_max,
+            "degree_average": sum(self.degree) / self.n,
+            "degree_distrib": degree_distrib,
+            "distance": self.calc_distance(True),
+            "duration": datetime.datetime.now() - begin,
+        }
+
+        return self.stats
 
     def calc_distance(self, printer=True):
         """
@@ -347,4 +357,4 @@ if __name__ == "__main__":
     if len(sys.argv) > 3:
         g.save(sys.argv[3])
     else:
-        g.stat()
+        g.print_stat()
