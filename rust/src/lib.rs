@@ -307,12 +307,9 @@ impl Graph {
             }
         }
 
-        // Classe les nœuds séléctionnés
-        let selected: Vec<usize> = (0..self.len()).filter(|n| origins[*n]).collect();
-
         // Récupère les nœuds séléctionnés et mesure le diamètre.
-        selected
-            .into_iter()
+        (0..self.len())
+            .filter(|n| origins[*n])
             .inspect(|origin| p.print("diameter", *origin))
             .for_each(|origin| {
                 let min = subtree[origin];
