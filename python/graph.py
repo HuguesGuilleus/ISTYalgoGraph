@@ -188,7 +188,7 @@ class Graph:
 
         return self.stats
 
-    def calc_distance(self, printer=True):
+    def calc_distance(self, enablePrint=True):
         """
         Calcule la distance en précalculant la distance des sous-arbres,
         séléctionne les nœuds avec un sous-arbre ou à l'extrémité du graphe,
@@ -196,12 +196,30 @@ class Graph:
         si le graphe est une forêt la complexité devient: O(S+A).
         """
 
-        def printing(ms):
-            if printer:
-                print(ms, end="\x1b[1G")
+        class Printer:
+            """Une classe pour géré l'affichage"""
+
+            def __init__(self):
+                self.last = datetime.datetime.now()
+                self.minDelta = datetime.timedelta(microseconds=500)
+
+            def print(self, ms):
+                "Affiche le message si self.minDelta s'est écoulé."
+                if printer:
+                    n = datetime.datetime.now()
+                    if enablePrint and n - self.last > self.minDelta:
+                        self.last = n
+                        print(ms, end="\x1b[1G", flush=True)
+
+            def clear(self):
+                "Efface la ligne."
+                if enablePrint:
+                    print("\x1b[K", end="", flush=True)
+
+        printer = Printer()
 
         # Déctecte et calcule le diamètre pour les sous-arbre.
-        printing(f"mark_tree")
+        printer.print(f"mark_tree")
         (whitelist, subtree, longest) = self.mark_tree()
 
         # Applique BFS sur chaque composante connexe.
@@ -209,13 +227,13 @@ class Graph:
         for n in range(self.n):
             if not whitelist[n] or dist[n] != 0:
                 continue
-            printing(f"first seen: {n}")
+            printer.print(f"first seen: {n:,}")
             for n, d in enumerate(self.bfs(n, whitelist)):
                 if d != None:
                     dist[n] = d
 
         # Séléctionne les nœuds pouvant donner le diamètre.
-        printing(f"selecting")
+        printer.print(f"selecting")
         origins = list(whitelist)
         for n in filter(lambda n: whitelist[n], range(self.n)):
             distN = dist[n]
@@ -230,15 +248,12 @@ class Graph:
         # Récupère les nœuds séléctionnés et mesure le diamètre
         for origin, selected in enumerate(origins):
             if selected:
-                printing(f"diameter: {n}")
+                printer.print(f"diameter: {origin:,}/{self.n:,}")
                 for n, d in enumerate(self.bfs(origin, whitelist)):
                     if d != None:
                         longest = max(longest, subtree[origin] + d + subtree[n])
 
-        # Efface la ligne
-        if printer:
-            print("\x1b[K", end="")
-
+        printer.clear()
         return longest
 
     def bfs(self, origin, whitelist):
