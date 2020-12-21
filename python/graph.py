@@ -323,7 +323,7 @@ if __name__ == "__main__":
         print("    gb|gen_barabasi_albert size")
         print("    l|load                 file.csv|file.txt")
         print()
-        print("Puis Indiquez un fichier si vous voulez exporter le graphe,")
+        print("Puis indiquez un fichier si vous voulez exporter le graphe,")
         print("sinon ses statistiques seront affichées.")
 
     loader = sys.argv[1] if len(sys.argv) > 2 else ""
@@ -336,7 +336,7 @@ if __name__ == "__main__":
     elif loader in ["gb", "gen_barabasi_albert"]:
         g = Graph(int(sys.argv[2]))
         g.gen_gilbert()
-    elif loader == "load":
+    elif loader in ["load", "l"]:
         g = Graph(0)
         g.load(sys.argv[2])
     else:
