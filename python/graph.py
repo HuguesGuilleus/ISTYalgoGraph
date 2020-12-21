@@ -8,8 +8,7 @@ class Graph:
     """
     # Source: https://fr.wikipedia.org/wiki/Matrice_d%27adjacence#Exemples
     >>> g = Graph(8)
-    >>> vertices = [(0, 1), (0, 4), (1, 6), (3, 6), (3, 2), (5, 0), (5, 1), (5, 2), (7, 6), (7, 6)]
-    >>> for v in vertices: g.add_edge(v)
+    >>> for v in [(0, 1), (0, 4), (1, 6), (3, 6), (3, 2), (5, 0), (5, 1), (5, 2), (7, 6), (7, 6)]: g.add_edge(v)
     >>> g
     * 1 . . 1 1 . .
     1 * . . . 1 1 .
@@ -23,6 +22,8 @@ class Graph:
     [1, 1, 1, 2, 2, 0, 2, 3]
     >>> g.calc_distance(False)
     4
+    >>> list(g.children(0, [False, False] + [True] * 6))
+    [4, 5]
     """
 
     def __init__(self, size):
@@ -212,6 +213,67 @@ class Graph:
                     node_todo.append(child)
 
         return dist
+
+    def mark_tree(self):
+        """
+        Recherche tous les sous-arbres. Retourne un triplet:
+        - Tableau des nœuds appartenant à des sous-arbres (plus pris en compte)
+        - Tableau des poids des sous-arbres.
+        - Distance maximal trouvée.
+        >>> g = Graph(15)
+        >>> for v in [(0, 1), (0, 2), (1, 2), (0, 3), (1, 4), (4, 5), (4, 6), (6, 7), (4, 8), (8, 10), (8, 9), (9, 11), (12, 13)]: g.add_edge(v)
+        >>> (whitelist, weight, longest) = g.mark_tree()
+        >>> whitelist
+        [True, True, True, False, False, False, False, False, False, False, False, False, False, False, False]
+        >>> weight[:3]
+        [1, 4, 0]
+        >>> longest
+        5
+        """
+        whitelist = [True] * self.n  # Les nœuds appartenant à des sous-arbres
+        weight = [0] * self.n  # Plus longue branche dans le sous-arbre.
+        longest = 0  # La plus longue branche
+
+        def nexter(it):
+            "Retourne le prochain élément de l'itérateur ou None"
+            try:
+                return next(it)
+            except StopIteration:
+                return None
+
+        for node in range(self.n):
+            if not whitelist[node]:
+                continue
+            parent = node
+            deep = 0
+            while True:
+                child = self.children(parent, whitelist)
+                a = nexter(child)
+                b = nexter(child)
+                if a != None and b == None:
+                    whitelist[parent] = False
+                    parentDeep = weight[parent]
+                    longest = max(longest, deep + parentDeep)
+                    deep = 1 + max(deep, parentDeep)
+                    parent = a
+                elif a == None and b == None:
+                    whitelist[parent] = False
+                    longest = max(longest, deep)
+                    break
+                else:
+                    parentDeep = weight[parent]
+                    longest = max(longest, deep + parentDeep)
+                    weight[parent] = max(deep, parentDeep)
+                    break
+
+        return (whitelist, weight, longest)
+
+    def children(self, parent, whitelist):
+        """
+        Retourne un itérateur sur tous les voisins de parent qui sont à
+        True sur la whiltelist.
+        """
+        return filter(lambda n: whitelist[n], self.adjacency_list[parent])
 
 
 if __name__ == "__main__":
