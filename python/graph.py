@@ -155,7 +155,7 @@ class Graph:
                     if p < c:
                         saver(f, (p, c))
 
-    def print_stat(self):
+    def print_stats(self):
         "Affiche les statistiques du graphes."
         stats = self.calc_stats()
         print(f"1) Le nombre de sommets est : {stats['nodes']}")
@@ -360,7 +360,7 @@ if __name__ == "__main__":
         g.gen_gilbert()
     elif loader in ["gb", "gen_barabasi_albert"]:
         g = Graph(int(sys.argv[2]))
-        g.gen_gilbert()
+        g.gen_barabasi_albert()
     elif loader in ["load", "l"]:
         g = Graph(0)
         g.load(sys.argv[2])
@@ -372,4 +372,4 @@ if __name__ == "__main__":
     if len(sys.argv) > 3:
         g.save(sys.argv[3])
     else:
-        g.print_stat()
+        g.print_stats()
