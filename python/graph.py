@@ -57,7 +57,7 @@ class Graph:
         return s[:-1]
 
     def grow_with_edge(self, vertices):
-        """Ajoute une arrete et grossit le graphe si besoin"""
+        """Ajoute une arête et grossit le graphe si besoin."""
         m = max(vertices[0], vertices[1]) + 1
         if self.n < m:
             for i in range(self.n, m):
@@ -71,7 +71,10 @@ class Graph:
         self.nb_edges_tot += 1
 
     def add_edge(self, vertices):
-        """Ajoute une arrete"""
+        """
+        Ajoute une arête, on admet que les deux sommets de l'arête existent
+        dans le graphe.
+        """
         self.adjacency_list[vertices[0]].append(vertices[1])
         self.adjacency_list[vertices[1]].append(vertices[0])
         self.degree[vertices[0]] += 1
@@ -104,10 +107,10 @@ class Graph:
 
     def load(self, f):
         """
-        Charge les aretes a partir fichier le format est determine par les
-        extentions qui penvent etre ".txt" ou bien ".csv".
-        >>> lines = ["id_1,id_2\\n", "0,1\\n", "0,2\\n", "1,2\\n"]
-        >>> with open("x.csv", "w") as f: f.writelines(lines) ;
+        Charge les arêtes à partir du fichier f, le format est déterminé par
+        les extensions qui peuvent être ".txt" ou bien ".csv".
+        >>> lines = ["id_1,id_2\\n", "0,1\\n", "0,2\\n", "1,2"]
+        >>> with open("x.csv", "w") as f: f.writelines(lines);
         >>> g = Graph(0); g.load("x.csv")
         >>> g
         * 1 1
@@ -127,8 +130,8 @@ class Graph:
 
     def save(self, out):
         """
-        Enregistre le graphe dans le fichier out; le format est déterminé par
-        les extentions qui penvent être ".txt" ou bien ".csv".
+        Enregistre le graphe dans le fichier "out"; le format est déterminé par
+        les extensions qui peuvent être ".txt" ou bien ".csv".
         >>> g = Graph(3)
         >>> for v in [(0, 1), (1, 2), (0, 2)]: g.add_edge(v)
         >>> g.save("x.csv")
@@ -156,20 +159,20 @@ class Graph:
                         saver(f, (p, c))
 
     def print_stats(self):
-        "Affiche les statistiques du graphes."
+        "Affiche les statistiques du graphe."
         stats = self.calc_stats()
         print(f"1) Le nombre de sommets est : {stats['nodes']}")
         print(f"2) Le nombre d'arêtes est : {stats['edges']}")
-        print(f"3) Le degrée maximal est : {stats['degree_max']}")
-        print(f"4) Le degrée moyen est : {stats['degree_average']}")
-        print(f"5) La courbe de distribution des degrées s'ouvre dans une fenêtre")
-        print(f"6) Le diamètre du graph est : {stats['distance']}")
-        print(f"+) La durée de calcule est : {stats['duration']}")
+        print(f"3) Le degré maximal est : {stats['degree_max']}")
+        print(f"4) Le degré moyen est : {stats['degree_average']}")
+        print(f"5) La courbe de distribution des degrés s'ouvre dans une fenêtre.")
+        print(f"6) Le diamètre du graphe est : {stats['distance']}")
+        print(f"+) La durée de calcul est : {stats['duration']}")
         plt.bar(list(range(len(stats["degree_distrib"]))), stats["degree_distrib"])
         plt.show()
 
     def calc_stats(self):
-        "Calcule les statistiques su graphe."
+        "Calcule les statistiques du graphe."
         begin = datetime.datetime.now()
         degree_max = max(self.degree)
         degree_distrib = [0] * (degree_max + 1)
@@ -190,14 +193,14 @@ class Graph:
 
     def calc_distance(self, enablePrint=True):
         """
-        Calcule la distance en précalculant la distance des sous-arbres,
-        séléctionne les nœuds avec un sous-arbre ou à l'extrémité du graphe,
+        Calcule la distance en pré calculant la distance des sous-arbres,
+        sélectionne les nœuds avec un sous-arbre ou à l'extrémité du graphe,
         et leur applique un parcours en largeur. Complexité maximale O(S*(S+A)),
         si le graphe est une forêt la complexité devient: O(S+A).
         """
 
         class Printer:
-            """Une classe pour géré l'affichage"""
+            """Une classe pour gérer l'affichage."""
 
             def __init__(self):
                 self.last = datetime.datetime.now()
@@ -219,7 +222,7 @@ class Graph:
         printer = Printer()
 
         # Déctecte et calcule le diamètre pour les sous-arbre.
-        printer.print(f"mark_tree")
+        printer.print("mark_tree ...")
         (whitelist, subtree, longest) = self.mark_tree()
 
         # Applique BFS sur chaque composante connexe.
@@ -232,8 +235,8 @@ class Graph:
                 if d != None:
                     dist[n] = d
 
-        # Séléctionne les nœuds pouvant donner le diamètre.
-        printer.print(f"selecting")
+        # Sélectionne les nœuds pouvant donner le diamètre.
+        printer.print("selecting ...")
         origins = list(whitelist)
         for n in filter(lambda n: whitelist[n], range(self.n)):
             distN = dist[n]
@@ -244,10 +247,10 @@ class Graph:
                 elif distN > dist[c] and subtree[c] == 0:
                     origins[c] = False
 
-        # Récupère les nœuds séléctionnés et mesure le diamètre
+        # Mesure le diamètre à partir des nœuds sélectionnés.
         for origin, selected in enumerate(origins):
             if selected:
-                printer.print(f"diameter: {origin:,}/{self.n:,}")
+                printer.print(f"BFS: {origin:,}/{self.n:,}")
                 for n, d in enumerate(self.bfs(origin, whitelist)):
                     if d != None:
                         longest = max(longest, subtree[origin] + d + subtree[n])
@@ -256,10 +259,12 @@ class Graph:
         return longest
 
     def bfs(self, origin, whitelist):
-        """Applique l'algorithme de parcours en largeur (*Breadth-first search*
-        en anglais) sur le sommet `origin`. Complexite: O(A+S). La closure `f`
-        prend le nœuds et sa distance minimal depuis l'origine. whitelist est
-        un tableau permettant d'ignorées certains sommets."""
+        """
+        Applique l'algorithme de parcours en largeur (*Breadth-first search*
+        en anglais) à partir du sommet `origin`. Complexité: O(A+S).
+        La closure `f` prend le nœud et sa distance minimum depuis l'origine.
+        whitelist est un tableau permettant d'ignorer certains sommets.
+        """
         dist = [None] * self.n
         dist[origin] = 0
         node_todo = [origin]
@@ -280,7 +285,7 @@ class Graph:
         Recherche tous les sous-arbres. Retourne un triplet:
         - Tableau des nœuds appartenant à des sous-arbres (plus pris en compte)
         - Tableau des poids des sous-arbres.
-        - Distance maximal trouvée.
+        - Distance maximale trouvée.
         >>> g = Graph(15)
         >>> for v in [(0, 1), (0, 2), (1, 2), (0, 3), (1, 4), (4, 5), (4, 6), (6, 7), (4, 8), (8, 10), (8, 9), (9, 11), (12, 13)]: g.add_edge(v)
         >>> (whitelist, weight, longest) = g.mark_tree()
@@ -342,7 +347,7 @@ if __name__ == "__main__":
     def print_help():
         print("Usage de graph.py:")
         print()
-        print("Charge ou genère le graphe avec:")
+        print("Charge ou génère le graphe avec:")
         print("    gg|gen_gilbert         size")
         print("    gb|gen_barabasi_albert size")
         print("    l|load                 file.csv|file.txt")

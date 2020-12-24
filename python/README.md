@@ -24,4 +24,4 @@ $ python3 graph.py load ../db/Wikipedia2.csv
 ## Fichiers
 
 -   `graph.py`: Contient la classe `Graph`, peut-être utilisé comme librairie ou comme script.
--   `parse.py`: Sert à sérialiser et désérialiser les graphe stockés en `.txt` ou `.csv`.
+-   `parse.py`: Sert à sérialiser et désérialiser les graphes stockés en `.txt` ou `.csv`.
