@@ -239,10 +239,9 @@ class Graph:
             distN = dist[n]
             haveNotSubtree = subtree[n] == 0
             for c in self.children(n, whitelist):
-                if distN < dist[c]:
-                    if haveNotSubtree:
-                        origins[n] = False
-                elif subtree[c] == 0:
+                if distN < dist[c] and haveNotSubtree:
+                    origins[n] = False
+                elif distN > dist[c] and subtree[c] == 0:
                     origins[c] = False
 
         # Récupère les nœuds séléctionnés et mesure le diamètre

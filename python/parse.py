@@ -14,7 +14,7 @@ def load_csv(f, save):
     les arcs.
     """
     for line in f.readlines(0)[1:]:
-        save(parse_csv(line[:-1]))
+        save(parse_csv(line))
 
 
 def parse_txt(line):
@@ -47,11 +47,11 @@ def save_csv(f, arc):
     """
     Save in f the arc in CSV format
     """
-    f.write("\n{},{}".format(arc[0], arc[1]))
+    f.write(f"\n{arc[0]},{arc[1]}")
 
 
 def save_txt(f, arc):
     """
     Save in f the arc in txt (with tab) format
     """
-    f.write("\n{}\t{}".format(arc[0], arc[1]))
+    f.write(f"\n{arc[0]}\t{arc[1]}")
