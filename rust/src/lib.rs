@@ -297,11 +297,9 @@ impl Graph {
             let dist_n = dist[n];
             let have_not_subtree = subtree[n] == 0;
             for c in self.children(n, &whitelist) {
-                if dist_n < dist[c] {
-                    if have_not_subtree {
-                        origins[n] = false;
-                    }
-                } else if subtree[c] == 0 {
+                if dist_n < dist[c] && have_not_subtree {
+                    origins[n] = false;
+                } else if dist_n > dist[c] && subtree[c] == 0 {
                     origins[c] = false;
                 }
             }
